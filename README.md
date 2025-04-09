@@ -1,6 +1,6 @@
-# Resume Matcher PWA
+# Resumix PWA
 
-A Progressive Web Application (PWA) that helps users match their resume to job descriptions using AI. The app analyzes the gap between your resume and the job you want, providing actionable recommendations to improve your chances.
+A Progressive Web Application (PWA) that helps users match their resume to job descriptions using AI. Resumix analyzes the gap between your resume and the job you want, providing actionable recommendations to improve your chances.
 
 ## Features
 
@@ -10,7 +10,7 @@ A Progressive Web Application (PWA) that helps users match their resume to job d
 - **AI-Powered Matching**: Uses LLMs through OpenRouter to analyze the match
 - **Smart Recommendations**: Get actionable feedback on how to improve your resume
 - **Skills Gap Analysis**: Identify missing skills needed for the job
-- **Works Offline**: As a PWA, it can be installed on your device and used offline
+- **Works Offline**: As a PWA, Resumix can be installed on your device and used offline
 - **Device Storage**: All your data is stored locally on your device for privacy
 
 ## Getting Started
@@ -22,7 +22,7 @@ A Progressive Web Application (PWA) that helps users match their resume to job d
 
 ### Installation
 
-This is a web application that can be installed as a PWA:
+Resumix is a web application that can be installed as a PWA:
 
 1. Visit the deployed app in your browser
 2. For a better experience, install it as a PWA:
@@ -31,14 +31,14 @@ This is a web application that can be installed as a PWA:
 
 ### Development Setup
 
-If you want to run this project locally for development:
+If you want to run Resumix locally for development:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/resume-matcher.git
+git clone https://github.com/yourusername/resumix.git # Assuming repo name change
 
 # Navigate to the project directory
-cd resume-matcher
+cd resumix
 
 # Install dependencies
 npm install
@@ -50,17 +50,17 @@ npm start
 ## How It Works
 
 1. **Initial Setup**:
-   - Upload your resume PDF
+   - Upload your resume PDF to Resumix
    - Fill out additional professional information
    - Add your skills or use auto-detected ones
 
 2. **Job Matching**:
    - Paste a job description you're interested in
-   - The app uses AI to analyze the match between your profile and the job
+   - Resumix uses AI to analyze the match between your profile and the job
    - Review the overall match percentage and specific areas to improve
 
 3. **Resume Improvement**:
-   - Follow the actionable recommendations to improve your resume
+   - Follow the actionable recommendations from Resumix to improve your resume
    - Address the identified skill gaps
    - Update your profile with new skills as you acquire them
 
@@ -76,7 +76,7 @@ npm start
 
 ## Privacy
 
-Your data never leaves your device except when sent to OpenRouter for analysis. The app does not store your resume or personal information on any server.
+Your data never leaves your device except when sent to OpenRouter for analysis by Resumix. The app does not store your resume or personal information on any server.
 
 ## License
 

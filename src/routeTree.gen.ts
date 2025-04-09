@@ -13,7 +13,9 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
 import { Route as SetupIndexImport } from './routes/setup/index'
+import { Route as HistoryIndexImport } from './routes/history/index'
 import { Route as DashboardIndexImport } from './routes/dashboard/index'
+import { Route as CompareIndexImport } from './routes/compare/index'
 import { Route as AnalysisIndexImport } from './routes/analysis/index'
 
 // Create/Update Routes
@@ -30,9 +32,21 @@ const SetupIndexRoute = SetupIndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const HistoryIndexRoute = HistoryIndexImport.update({
+  id: '/history/',
+  path: '/history/',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const DashboardIndexRoute = DashboardIndexImport.update({
   id: '/dashboard/',
   path: '/dashboard/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const CompareIndexRoute = CompareIndexImport.update({
+  id: '/compare/',
+  path: '/compare/',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -60,11 +74,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalysisIndexImport
       parentRoute: typeof rootRoute
     }
+    '/compare/': {
+      id: '/compare/'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof CompareIndexImport
+      parentRoute: typeof rootRoute
+    }
     '/dashboard/': {
       id: '/dashboard/'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/history/': {
+      id: '/history/'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryIndexImport
       parentRoute: typeof rootRoute
     }
     '/setup/': {
@@ -82,14 +110,18 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisIndexRoute
+  '/compare': typeof CompareIndexRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/history': typeof HistoryIndexRoute
   '/setup': typeof SetupIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analysis': typeof AnalysisIndexRoute
+  '/compare': typeof CompareIndexRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/history': typeof HistoryIndexRoute
   '/setup': typeof SetupIndexRoute
 }
 
@@ -97,30 +129,49 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/analysis/': typeof AnalysisIndexRoute
+  '/compare/': typeof CompareIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/history/': typeof HistoryIndexRoute
   '/setup/': typeof SetupIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analysis' | '/dashboard' | '/setup'
+  fullPaths:
+    | '/'
+    | '/analysis'
+    | '/compare'
+    | '/dashboard'
+    | '/history'
+    | '/setup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analysis' | '/dashboard' | '/setup'
-  id: '__root__' | '/' | '/analysis/' | '/dashboard/' | '/setup/'
+  to: '/' | '/analysis' | '/compare' | '/dashboard' | '/history' | '/setup'
+  id:
+    | '__root__'
+    | '/'
+    | '/analysis/'
+    | '/compare/'
+    | '/dashboard/'
+    | '/history/'
+    | '/setup/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalysisIndexRoute: typeof AnalysisIndexRoute
+  CompareIndexRoute: typeof CompareIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  HistoryIndexRoute: typeof HistoryIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalysisIndexRoute: AnalysisIndexRoute,
+  CompareIndexRoute: CompareIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  HistoryIndexRoute: HistoryIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
 }
 
@@ -136,7 +187,9 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/analysis/",
+        "/compare/",
         "/dashboard/",
+        "/history/",
         "/setup/"
       ]
     },
@@ -146,8 +199,14 @@ export const routeTree = rootRoute
     "/analysis/": {
       "filePath": "analysis/index.tsx"
     },
+    "/compare/": {
+      "filePath": "compare/index.tsx"
+    },
     "/dashboard/": {
       "filePath": "dashboard/index.tsx"
+    },
+    "/history/": {
+      "filePath": "history/index.tsx"
     },
     "/setup/": {
       "filePath": "setup/index.tsx"

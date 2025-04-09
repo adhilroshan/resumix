@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Text, Group, Button, Paper, Box, Progress, Stack, Alert, Center, Loader, RingProgress, useMantineTheme } from '@mantine/core';
+import { Text, Button, Paper, Box, Stack, Alert, Center, RingProgress, useMantineTheme } from '@mantine/core';
 import { IconCloudUpload, IconFileUpload, IconCheck, IconX } from '@tabler/icons-react';
 import { extractTextFromPDF, extractPotentialSkills, extractContactInfo } from '../../utils/pdfUtils';
 import { StorageService } from '../../services/storageService';

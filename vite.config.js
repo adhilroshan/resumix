@@ -13,10 +13,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Resume Matcher',
-        short_name: 'ResMatch',
-        description: 'Match your resume to job descriptions',
-        theme_color: '#ffffff',
+        name: 'Resumix PWA',
+        short_name: 'Resumix',
+        description: 'Match your resume to job descriptions with Resumix',
+        theme_color: '#1976d2',
         icons: [
           {
             src: 'pwa-192x192.png',

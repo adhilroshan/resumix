@@ -1,7 +1,7 @@
 {
-  "short_name": "Resume Matcher",
-  "name": "Resume Matcher PWA",
-  "description": "Match your resume to job descriptions and get actionable feedback",
+  "short_name": "Resumix",
+  "name": "Resumix PWA",
+  "description": "Match your resume to job descriptions with Resumix and get actionable feedback",
   "icons": [
     {
       "src": "favicon.ico",

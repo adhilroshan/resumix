@@ -12,9 +12,9 @@ function HomePage() {
   return (
     <Container size="md" py="xl">
       <Stack gap="lg" align="center">
-        <Title order={1}>Resume Matcher</Title>
+        <Title order={1}>Resumix</Title>
         <Text size="lg" ta="center">
-          Match your resume to job descriptions and get actionable feedback to improve your chances
+          Match your resume to job descriptions with Resumix and get actionable feedback to improve your chances
         </Text>
         
         <Group mt="xl">

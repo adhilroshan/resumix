@@ -4,11 +4,8 @@ import {
   Container, 
   Title, 
   Text, 
-  Paper, 
-  Progress, 
   Stack, 
   Button, 
-  Grid, 
   Card, 
   Alert, 
   Center, 
@@ -16,7 +13,6 @@ import {
   Group, 
   Badge,
   ThemeIcon,
-  Skeleton,
   Divider,
   rem
 } from '@mantine/core'
@@ -26,7 +22,6 @@ import { StorageService } from '../../services/storageService'
 import { 
   IconArrowBack, 
   IconX, 
-  IconAlertTriangle, 
   IconCheck, 
   IconStar, 
   IconChartBar,
@@ -50,6 +45,7 @@ function AnalysisPage() {
       try {
         setIsLoading(true)
         setError(null)
+        setAnalysisResult(null)
         
         // Check if we have all the necessary data
         const resumeData = StorageService.getResumeData()
@@ -58,7 +54,8 @@ function AnalysisPage() {
         const jobDescription = localStorage.getItem('currentJobDescription')
         
         if (!resumeData || !userInfo || !skills.length || !jobDescription) {
-          throw new Error('Missing required data for analysis')
+          setError('Missing necessary information (resume, user info, or job description).')
+          return
         }
         
         const result = await analyzeResumeMatch(
@@ -76,28 +73,19 @@ function AnalysisPage() {
           jobDescription
         )
         
-        // Save the result to storage
-        StorageService.saveAnalysisResult(
-          { 
-            overallMatch: result.overallMatch,
-            skillsMatch: result.skillsMatch,
-            experienceMatch: result.experienceMatch,
-            recommendations: result.recommendations,
-            missingSkills: result.missingSkills,
-            jobDescription: jobDescription,
-          }, 
-          jobDescription
-        )
-        
         setAnalysisResult(result)
       } catch (error) {
         console.error('Failed to analyze:', error)
-        setError(error instanceof Error ? error.message : 'Failed to analyze resume')
-        
-        // Try to load the last result if available
-        const lastResult = StorageService.getLastAnalysisResult()
-        if (lastResult) {
-          setAnalysisResult(lastResult)
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during analysis.'
+
+        // Check if the error indicates queuing for background sync
+        if (errorMessage.includes('queued for background sync')) {
+          setError(errorMessage) // Set the specific queuing message
+          // Optionally clear any stale analysis result if you prefer
+          // setAnalysisResult(null)
+        } else {
+          // Handle other errors (API key missing, parsing failed, etc.)
+          setError(`Analysis failed: ${errorMessage}`)
         }
       } finally {
         setIsLoading(false)
@@ -105,7 +93,7 @@ function AnalysisPage() {
     }
 
     fetchAnalysis()
-  }, [])
+  }, [navigate])
 
   // Helper function to get color based on score
   const getScoreColor = (score: number) => {
@@ -114,19 +102,29 @@ function AnalysisPage() {
     return 'red';
   }
 
-  if (error && !analysisResult) {
+  if (error && !isLoading) {
+    // Determine alert color and title based on error message
+    const isQueued = error.includes('queued for background sync');
+    const alertColor = isQueued ? 'blue' : 'red';
+    const alertTitle = isQueued ? 'Request Queued' : 'Analysis Error';
+    const alertIcon = isQueued ? <IconLoader2 size={18} /> : <IconX size={18} />;
+    const message = isQueued
+      ? `Network connection issue. Your analysis request has been queued and will be processed automatically in the background when you're back online. You'll receive a notification upon completion.`
+      : `${error}<br />Please check your API key in the dashboard or try again later.`;
+
     return (
       <Container size="md" py="md" px="xs">
-        <Alert 
-          color="red" 
-          title="Error" 
-          mb="lg" 
+        <Alert
+          color={alertColor}
+          title={alertTitle}
+          mb="lg"
           radius="md"
-          icon={<IconX size={18} />}
+          icon={alertIcon}
+          style={{ whiteSpace: 'pre-wrap' }}
         >
-          {error}. Please go back and try again.
+          {message}
         </Alert>
-        <Button 
+        <Button
           leftSection={<IconArrowBack size={16} />}
           onClick={() => navigate({ to: '/dashboard' })}
           size="md"
@@ -139,176 +137,173 @@ function AnalysisPage() {
     )
   }
 
-  return (
-    <Container size="md" py="md" px="xs">
-      <Stack gap="md">
-        <Title order={2} ta="center" size="h3">Resume Match Analysis</Title>
-        
-        {isLoading ? (
-          <Card withBorder p="lg" radius="md" mt="xs">
-            <Stack align="center" gap="md">
-              <Text fw={500} ta="center" mb="sm">
-                Analyzing your resume against the job description...
-              </Text>
+  if (isLoading) {
+    return (
+      <Container size="md" py="xl" px="xs">
+        <Card withBorder p="lg" radius="md" mt="xs">
+          <Stack align="center" gap="md">
+            <Text fw={500} ta="center" mb="sm">
+              Analyzing your resume against the job description...
+            </Text>
+            
+            <Center style={{ position: 'relative', height: 120, width: 120 }}>
+              <RingProgress
+                size={120}
+                thickness={12}
+                sections={[{ value: 100, color: 'blue' }]}
+                roundCaps
+              />
+              <IconLoader2 
+                style={{ 
+                  position: 'absolute', 
+                  width: rem(40), 
+                  height: rem(40),
+                  animation: 'spin 2s linear infinite'
+                }} 
+              />
+            </Center>
+            
+            <Text ta="center" size="sm" c="dimmed" mt="sm">
+              This may take a moment...
+            </Text>
+          </Stack>
+        </Card>
+      </Container>
+    )
+  }
+
+  if (analysisResult) {
+    return (
+      <Container size="md" py="md" px="xs">
+        <Stack gap="md">
+          <Title order={2} ta="center" size="h3">Resume Match Analysis</Title>
+          
+          <Card withBorder radius="md" p="md" mt="xs">
+            <Stack gap="md" align="center">
+              <Group>
+                <IconChartBar size={24} />
+                <Title order={3} size="h4">Overall Match</Title>
+              </Group>
               
-              <Center style={{ position: 'relative', height: 120, width: 120 }}>
-                <RingProgress
-                  size={120}
-                  thickness={12}
-                  sections={[{ value: 100, color: 'blue' }]}
-                  roundCaps
-                />
-                <IconLoader2 
-                  style={{ 
-                    position: 'absolute', 
-                    width: rem(40), 
-                    height: rem(40),
-                    animation: 'spin 2s linear infinite'
-                  }} 
-                />
-              </Center>
-              
-              <Stack gap="md" mt="md" style={{ width: '100%' }}>
-                <Skeleton height={8} radius="xl" />
-                <Skeleton height={8} radius="xl" width="70%" />
-                <Skeleton height={8} radius="xl" width="50%" />
-              </Stack>
+              <RingProgress
+                size={160}
+                thickness={16}
+                roundCaps
+                sections={[{ 
+                  value: analysisResult.overallMatch, 
+                  color: getScoreColor(analysisResult.overallMatch) 
+                }]}
+                label={
+                  <Center>
+                    <Text fw={700} size="xl">{analysisResult.overallMatch}%</Text>
+                  </Center>
+                }
+              />
+
+              <Group grow style={{ width: '100%' }} mt="xs">
+                <Card withBorder p="sm" radius="md">
+                  <Text fw={500} size="sm" ta="center" mb="xs">Skills Match</Text>
+                  <RingProgress
+                    size={80}
+                    thickness={8}
+                    roundCaps
+                    sections={[{ value: analysisResult.skillsMatch, color: 'blue' }]}
+                    label={
+                      <Text ta="center" fw={700} size="xs">
+                        {analysisResult.skillsMatch}%
+                      </Text>
+                    }
+                  />
+                </Card>
+                
+                <Card withBorder p="sm" radius="md">
+                  <Text fw={500} size="sm" ta="center" mb="xs">Experience Match</Text>
+                  <RingProgress
+                    size={80}
+                    thickness={8}
+                    roundCaps
+                    sections={[{ value: analysisResult.experienceMatch, color: 'violet' }]}
+                    label={
+                      <Text ta="center" fw={700} size="xs">
+                        {analysisResult.experienceMatch}%
+                      </Text>
+                    }
+                  />
+                </Card>
+              </Group>
             </Stack>
           </Card>
-        ) : (
-          <>
-            {error && (
-              <Alert 
-                color="yellow" 
-                title="Warning" 
-                mb="md" 
-                radius="md"
-                icon={<IconAlertTriangle size={16} />}
-              >
-                {error}. Showing last available analysis results.
-              </Alert>
-            )}
+          
+          <Card withBorder p="md" radius="md">
+            <Group mb="md">
+              <ThemeIcon color="green" size="md" radius="xl">
+                <IconBulb size={16} />
+              </ThemeIcon>
+              <Title order={4}>Recommendations</Title>
+            </Group>
             
-            <Card withBorder radius="md" p="md" mt="xs">
-              <Stack gap="md" align="center">
-                <Group>
-                  <IconChartBar size={24} />
-                  <Title order={3} size="h4">Overall Match</Title>
-                </Group>
-                
-                <RingProgress
-                  size={160}
-                  thickness={16}
-                  roundCaps
-                  sections={[{ 
-                    value: analysisResult.overallMatch, 
-                    color: getScoreColor(analysisResult.overallMatch) 
-                  }]}
-                  label={
-                    <Center>
-                      <Text fw={700} size="xl">{analysisResult.overallMatch}%</Text>
-                    </Center>
-                  }
-                />
-
-                <Group grow style={{ width: '100%' }} mt="xs">
-                  <Card withBorder p="sm" radius="md">
-                    <Text fw={500} size="sm" ta="center" mb="xs">Skills Match</Text>
-                    <RingProgress
-                      size={80}
-                      thickness={8}
-                      roundCaps
-                      sections={[{ value: analysisResult.skillsMatch, color: 'blue' }]}
-                      label={
-                        <Text ta="center" fw={700} size="xs">
-                          {analysisResult.skillsMatch}%
-                        </Text>
-                      }
-                    />
-                  </Card>
-                  
-                  <Card withBorder p="sm" radius="md">
-                    <Text fw={500} size="sm" ta="center" mb="xs">Experience Match</Text>
-                    <RingProgress
-                      size={80}
-                      thickness={8}
-                      roundCaps
-                      sections={[{ value: analysisResult.experienceMatch, color: 'violet' }]}
-                      label={
-                        <Text ta="center" fw={700} size="xs">
-                          {analysisResult.experienceMatch}%
-                        </Text>
-                      }
-                    />
-                  </Card>
-                </Group>
-              </Stack>
-            </Card>
+            <Divider mb="md" />
             
-            <Card withBorder p="md" radius="md">
-              <Group mb="md">
-                <ThemeIcon color="green" size="md" radius="xl">
-                  <IconBulb size={16} />
-                </ThemeIcon>
-                <Title order={4}>Recommendations</Title>
-              </Group>
-              
-              <Divider mb="md" />
-              
-              <Stack gap="sm">
-                {analysisResult.recommendations.map((recommendation: string, index: number) => (
-                  <Group key={index} wrap="nowrap" align="flex-start">
-                    <ThemeIcon color="green" size="sm" radius="xl">
-                      <IconCheck size={12} />
-                    </ThemeIcon>
-                    <Text size="sm">{recommendation}</Text>
-                  </Group>
+            <Stack gap="sm">
+              {analysisResult.recommendations.map((recommendation: string, index: number) => (
+                <Group key={index} wrap="nowrap" align="flex-start">
+                  <ThemeIcon color="green" size="sm" radius="xl">
+                    <IconCheck size={12} />
+                  </ThemeIcon>
+                  <Text size="sm">{recommendation}</Text>
+                </Group>
+              ))}
+            </Stack>
+          </Card>
+          
+          <Card withBorder p="md" radius="md">
+            <Group mb="md">
+              <ThemeIcon color="blue" size="md" radius="xl">
+                <IconListCheck size={16} />
+              </ThemeIcon>
+              <Title order={4}>Missing Skills</Title>
+            </Group>
+            
+            <Divider mb="md" />
+            
+            {analysisResult.missingSkills && analysisResult.missingSkills.length > 0 ? (
+              <Group gap="xs" style={{ flexWrap: 'wrap' }}>
+                {analysisResult.missingSkills.map((skill: string, index: number) => (
+                  <Badge key={index} color="blue" size="lg" radius="sm" variant="filled">
+                    {skill}
+                  </Badge>
                 ))}
-              </Stack>
-            </Card>
-            
-            <Card withBorder p="md" radius="md">
-              <Group mb="md">
-                <ThemeIcon color="blue" size="md" radius="xl">
-                  <IconListCheck size={16} />
-                </ThemeIcon>
-                <Title order={4}>Missing Skills</Title>
               </Group>
-              
-              <Divider mb="md" />
-              
-              {analysisResult.missingSkills && analysisResult.missingSkills.length > 0 ? (
-                <Group gap="xs" style={{ flexWrap: 'wrap' }}>
-                  {analysisResult.missingSkills.map((skill: string, index: number) => (
-                    <Badge key={index} color="blue" size="lg" radius="sm" variant="filled">
-                      {skill}
-                    </Badge>
-                  ))}
+            ) : (
+              <Center p="md">
+                <Group>
+                  <IconStar size={16} />
+                  <Text c="dimmed">No missing skills identified</Text>
                 </Group>
-              ) : (
-                <Center p="md">
-                  <Group>
-                    <IconStar size={16} />
-                    <Text c="dimmed">No missing skills identified</Text>
-                  </Group>
-                </Center>
-              )}
-            </Card>
-            
-            <Button 
-              fullWidth
-              size="lg"
-              radius="md"
-              leftSection={<IconArrowBack size={16} />}
-              onClick={() => navigate({ to: '/dashboard' })}
-              style={{ height: '50px' }}
-              mt="md"
-            >
-              Back to Dashboard
-            </Button>
-          </>
-        )}
-      </Stack>
+              </Center>
+            )}
+          </Card>
+          
+          <Button 
+            fullWidth
+            size="lg"
+            radius="md"
+            leftSection={<IconArrowBack size={16} />}
+            onClick={() => navigate({ to: '/dashboard' })}
+            style={{ height: '50px' }}
+            mt="md"
+          >
+            Back to Dashboard
+          </Button>
+        </Stack>
+      </Container>
+    )
+  }
+
+  return (
+    <Container size="md" py="md" px="xs">
+      <Text>Something went wrong.</Text>
+      <Button onClick={() => navigate({ to: '/dashboard' })}>Go Back</Button>
     </Container>
   )
 } 

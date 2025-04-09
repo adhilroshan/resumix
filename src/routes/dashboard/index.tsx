@@ -12,15 +12,11 @@ import {
   TextInput,
   Alert,
   Modal,
-  Card,
-  Avatar,
-  ThemeIcon,
-  Divider,
-  Box
+  Card
 } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { StorageService } from '../../services/storageService'
-import { IconSearch, IconKey, IconUser, IconBrandOpenai, IconArrowRight } from '@tabler/icons-react'
+import { IconHistory, IconBell } from '@tabler/icons-react'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
@@ -33,8 +29,23 @@ function DashboardPage() {
   const [setupComplete, setSetupComplete] = useState(false)
   const [userName, setUserName] = useState('')
   const navigate = useNavigate()
+  const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
 
-  // Check if setup is completed
+  // Request notification permission if not already granted or denied
+  const requestNotificationPermission = async () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      try {
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission); // USE the setter here
+        // Optionally store permission status in localStorage if needed across sessions
+        // localStorage.setItem('notificationPermission', permission);
+      } catch (error) {
+         console.error("Error requesting notification permission:", error);
+         // Handle potential errors during request
+      }
+    }
+  };
+
   useEffect(() => {
     const isSetupComplete = StorageService.hasCompletedSetup()
     setSetupComplete(isSetupComplete)
@@ -45,22 +56,38 @@ function DashboardPage() {
       }, 3000)
       
       return () => clearTimeout(timeout)
-    }
-    
-    // Load user info for display
-    const userInfo = StorageService.getUserInformation()
-    if (userInfo) {
-      setUserName(userInfo.fullName)
-    }
-    
-    // Check if API key is set
-    const savedApiKey = StorageService.getOpenRouterApiKey()
-    if (savedApiKey) {
-      setApiKey(savedApiKey)
     } else {
-      setApiKeyModalOpen(true)
+      const userInfo = StorageService.getUserInformation()
+      if (userInfo) {
+        setUserName(userInfo.fullName)
+      }
+      
+      // Check if API key is set
+      const savedApiKey = StorageService.getOpenRouterApiKey()
+      if (savedApiKey) {
+        setApiKey(savedApiKey)
+      } else {
+        setApiKeyModalOpen(true)
+      }
+
+      // Check and potentially request notification permission
+      if ('Notification' in window) {
+         const currentPermission = Notification.permission;
+         if (currentPermission !== notificationPermission) {
+             setNotificationPermission(currentPermission); // USE setter if changed externally
+         }
+         if (currentPermission === 'default') {
+           // Request permission slightly delayed on dashboard load
+           const timer = setTimeout(requestNotificationPermission, 2000);
+           return () => clearTimeout(timer); // Cleanup timer on unmount
+         }
+       } else {
+         // Handle browsers that don't support Notification API
+         console.log("Notification API not supported.");
+       }
     }
-  }, [navigate])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]); // Removed notificationPermission from dependencies to avoid loop on update
 
   const handleSubmit = () => {
     if (!jobDescription.trim()) return
@@ -81,13 +108,8 @@ function DashboardPage() {
 
   if (!setupComplete) {
     return (
-      <Container size="md" py="xl" px="xs">
-        <Alert 
-          color="blue" 
-          title="Setup Required" 
-          radius="md"
-          icon={<IconUser size={16} />}
-        >
+      <Container size="md" py="xl">
+        <Alert color="blue" title="Setup Required">
           You need to complete the setup process first. Redirecting to setup...
         </Alert>
       </Container>
@@ -96,114 +118,16 @@ function DashboardPage() {
 
   return (
     <Container size="md" py="md" px="xs">
-      <Stack gap="md">
-        {/* User greeting */}
-        <Card p="md" radius="md" withBorder>
-          <Group>
-            <Avatar color="blue" radius="xl" size="lg">
-              {userName ? userName.charAt(0).toUpperCase() : 'U'}
-            </Avatar>
-            <Box>
-              <Text fw={500} size="lg">
-                {userName ? `Hello, ${userName.split(' ')[0]}!` : 'Welcome!'}
-              </Text>
-              <Text size="sm" c="dimmed">
-                Find your perfect career match
-              </Text>
-            </Box>
-          </Group>
-        </Card>
-
-        <Title order={2} size="h3" my="xs" ta="center">Job Match Analysis</Title>
-        
-        <Text ta="center" size="sm">
-          Paste a job description below to analyze how well your resume matches the requirements.
-        </Text>
-
-        <Paper withBorder p="md" mt="xs" radius="md">
-          <Textarea
-            placeholder="Paste the job description here..."
-            label={
-              <Text fw={500} mb="xs">
-                <IconSearch size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                Job Description
-              </Text>
-            }
-            description="Copy and paste the job description you want to analyze"
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            minRows={6}
-            autosize
-            maxRows={12}
-            radius="md"
-            required
-            styles={{
-              input: {
-                fontSize: '16px',  // Better for mobile readability
-              }
-            }}
-          />
-          
-          <Button 
-            fullWidth
-            size="lg"
-            onClick={handleSubmit}
-            disabled={!jobDescription.trim()}
-            mt="md"
-            radius="md"
-            rightSection={<IconArrowRight size={16} />}
-            style={{ height: '50px' }}
-          >
-            Analyze Match
-          </Button>
-        </Paper>
-
-        <Divider my="xs" />
-
-        <Group grow>
-          <Button 
-            size="md" 
-            radius="md" 
-            variant="outline" 
-            leftSection={<IconUser size={18} />}
-            onClick={() => navigate({ to: '/setup' })}
-            style={{ height: '46px' }}
-          >
-            Edit Profile
-          </Button>
-          <Button 
-            size="md" 
-            radius="md" 
-            variant="light" 
-            leftSection={<IconKey size={18} />}
-            onClick={() => setApiKeyModalOpen(true)}
-            style={{ height: '46px' }}
-          >
-            Set API Key
-          </Button>
-        </Group>
-      </Stack>
-
-      {/* API Key Modal */}
       <Modal
         opened={apiKeyModalOpen}
         onClose={() => apiKey.trim() ? setApiKeyModalOpen(false) : null}
-        title={
-          <Group>
-            <ThemeIcon size="md" radius="xl" color="violet">
-              <IconBrandOpenai size={16} />
-            </ThemeIcon>
-            <Text fw={600}>OpenRouter API Key</Text>
-          </Group>
-        }
+        title="OpenRouter API Key for Resumix"
         closeOnClickOutside={false}
         closeOnEscape={false}
-        radius="md"
-        padding="lg"
       >
         <Stack>
           <Text size="sm">
-            This application requires an OpenRouter API key to analyze your resume.
+            Resumix requires an OpenRouter API key to analyze your resume.
             Please enter your API key below.
           </Text>
           <TextInput
@@ -212,30 +136,83 @@ function DashboardPage() {
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             required
-            size="md"
-            radius="md"
-            leftSection={<IconKey size={16} />}
-            styles={{
-              input: {
-                fontSize: '16px',  // Better for mobile readability
-              }
-            }}
           />
           <Text size="xs" c="dimmed">
             You can get an API key from <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer">OpenRouter.ai</a>
           </Text>
-          <Button 
-            onClick={handleSaveApiKey} 
-            disabled={!apiKey.trim()}
-            size="lg"
-            radius="md"
-            fullWidth
-            mt="sm"
-          >
+          <Button onClick={handleSaveApiKey} disabled={!apiKey.trim()}>
             Save API Key
           </Button>
         </Stack>
       </Modal>
+
+      <Stack gap="lg">
+        <Card withBorder p="lg" radius="md">
+          <Group justify="space-between" align="flex-start">
+            <Stack gap="xs">
+              <Title order={3} size="h4">Welcome to Resumix, {userName || 'User'}!</Title>
+              <Text size="sm" c="dimmed" mt={-5}>
+                Ready to optimize your resume?
+              </Text>
+            </Stack>
+            <Button 
+              variant="light" 
+              size="sm" 
+              leftSection={<IconHistory size={16} />}
+              onClick={() => navigate({ to: '/history' })}
+            >
+              View History
+            </Button>
+          </Group>
+        </Card>
+
+        {/* Notification Permission Prompt (only if default/denied) */}
+        {notificationPermission !== 'granted' && 'Notification' in window && (
+          <Alert
+            color={notificationPermission === 'denied' ? "orange" : "blue"}
+            title="Enable Notifications?"
+            icon={<IconBell size={18} />}
+            withCloseButton={notificationPermission === 'denied'} // Allow dismissing if denied
+            onClose={() => { /* Could set a flag to not show again */ }}
+            radius="md"
+          >
+            <Group justify="space-between">
+              <Text size="sm">
+                {notificationPermission === 'denied'
+                  ? "Notifications are blocked. Enable them in browser settings to get background analysis updates."
+                  : "Allow notifications to be alerted when background analysis is complete."
+                }
+              </Text>
+              {notificationPermission === 'default' && (
+                <Button size="xs" onClick={requestNotificationPermission}>
+                  Allow
+                </Button>
+              )}
+            </Group>
+          </Alert>
+        )}
+
+        <Paper withBorder p="md" mt="xs" radius="md">
+          <Stack>
+            <Textarea
+              placeholder="Paste the job description here..."
+              label="Job Description"
+              description="Copy and paste the job description you want to analyze"
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              minRows={8}
+              required
+            />
+          </Stack>
+        </Paper>
+
+        <Button
+          onClick={handleSubmit}
+          disabled={!jobDescription.trim()}
+        >
+          Analyze Match
+        </Button>
+      </Stack>
     </Container>
   )
 } 

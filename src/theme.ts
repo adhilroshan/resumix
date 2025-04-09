@@ -1,7 +1,7 @@
 import { createTheme } from '@mantine/core';
 
 // Define a custom primary color array with 10 values
-const primary = [
+const primary: [string, string, string, string, string, string, string, string, string, string] = [
   '#e0f2ff',
   '#b3d9ff',
   '#85bfff',
@@ -39,4 +39,4 @@ export const theme = createTheme({
       },
     },
   },
-}); 
+});

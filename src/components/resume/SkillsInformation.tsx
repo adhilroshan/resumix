@@ -20,7 +20,7 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
       if (savedSkills.length) {
         setSkills(savedSkills);
       }
-      
+
       // Load detected skills
       const detectedSkillsStr = localStorage.getItem('detectedSkills');
       if (detectedSkillsStr) {
@@ -29,7 +29,7 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
         const newDetectedSkills = parsedSkills.filter(
           skill => !savedSkills.some(s => s.toLowerCase() === skill.toLowerCase())
         );
-        
+
         if (newDetectedSkills.length > 0) {
           setDetectedSkills(newDetectedSkills);
           setShowDetectedSkills(true);
@@ -48,12 +48,12 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
 
   const addSkill = () => {
     if (!newSkill.trim()) return;
-    
+
     // Prevent duplicate skills (case-insensitive)
     if (!skills.some(skill => skill.toLowerCase() === newSkill.toLowerCase())) {
       setSkills([...skills, newSkill.trim()]);
     }
-    
+
     setNewSkill('');
   };
 
@@ -65,10 +65,10 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
     // Only add if not already in the list
     if (!skills.some(s => s.toLowerCase() === skill.toLowerCase())) {
       setSkills([...skills, skill]);
-      
+
       // Remove from detected skills
       setDetectedSkills(detectedSkills.filter(s => s !== skill));
-      
+
       // Hide detected skills panel if empty
       if (detectedSkills.length <= 1) {
         setShowDetectedSkills(false);
@@ -81,7 +81,7 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
     const newSkills = detectedSkills.filter(
       skill => !skills.some(s => s.toLowerCase() === skill.toLowerCase())
     );
-    
+
     setSkills([...skills, ...newSkills]);
     setDetectedSkills([]);
     setShowDetectedSkills(false);
@@ -102,7 +102,7 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
         <Text size="sm" c="dimmed">
           Add your technical and professional skills. These will be matched against job descriptions.
         </Text>
-        
+
         {showDetectedSkills && detectedSkills.length > 0 && (
           <Alert title="Skills Detected from Resume" color="blue">
             <Text size="sm" mb="sm">
@@ -110,10 +110,10 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
             </Text>
             <Box mb="sm">
               {detectedSkills.map((skill, index) => (
-                <Badge 
-                  key={index} 
-                  size="lg" 
-                  mr="xs" 
+                <Badge
+                  key={index}
+                  size="lg"
+                  mr="xs"
                   mb="xs"
                   variant="filled"
                   color="blue"
@@ -129,7 +129,7 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
             </Button>
           </Alert>
         )}
-        
+
         <Group gap="xs">
           <TextInput
             placeholder="Add a skill (e.g., TypeScript, React, Project Management)"
@@ -142,21 +142,21 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
             Add
           </Button>
         </Group>
-        
+
         {skills.length > 0 ? (
           <Box mt="md">
             {skills.map((skill, index) => (
-              <Badge 
-                key={index} 
-                size="lg" 
-                mr="xs" 
+              <Badge
+                key={index}
+                size="lg"
+                mr="xs"
                 mb="xs"
                 variant="outline"
                 style={{ cursor: 'pointer' }}
                 rightSection={
-                  <Box 
+                  <Box
                     onClick={() => removeSkill(skill)}
-                    sx={{
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -167,7 +167,6 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
                       marginRight: -5,
                       fontSize: 10,
                       backgroundColor: 'rgba(0, 0, 0, 0.1)',
-                      ':hover': { backgroundColor: 'rgba(0, 0, 0, 0.2)' },
                     }}
                   >
                     ✕
@@ -186,4 +185,4 @@ export function SkillsInformation({ onSave }: SkillsInformationProps) {
       </Stack>
     </Paper>
   );
-} 
+}

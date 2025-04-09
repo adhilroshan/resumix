@@ -19,7 +19,6 @@ interface UserInformationProps {
 export function UserInformation({ onSave }: UserInformationProps) {
   const {
     register,
-    handleSubmit,
     formState: { errors },
     setValue,
     getValues,
@@ -53,13 +52,13 @@ export function UserInformation({ onSave }: UserInformationProps) {
   // Save form data when value changes
   const handleChange = (field: keyof UserInfoFormData, value: string) => {
     setValue(field, value);
-    
+
     const currentValues = getValues();
     localStorage.setItem('userInformation', JSON.stringify({
       ...currentValues,
       [field]: value,
     }));
-    
+
     onSave({
       ...currentValues,
       [field]: value,
@@ -71,7 +70,7 @@ export function UserInformation({ onSave }: UserInformationProps) {
       <form>
         <Stack gap="md">
           <Text size="lg" fw={500}>Personal Information</Text>
-          
+
           <Grid>
             <Grid.Col span={6}>
               <TextInput
@@ -82,13 +81,13 @@ export function UserInformation({ onSave }: UserInformationProps) {
                 onChange={(e) => handleChange('fullName', e.target.value)}
               />
             </Grid.Col>
-            
+
             <Grid.Col span={6}>
               <TextInput
                 label="Email"
                 placeholder="john.doe@example.com"
                 type="email"
-                {...register('email', { 
+                {...register('email', {
                   required: 'Email is required',
                   pattern: {
                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -100,7 +99,7 @@ export function UserInformation({ onSave }: UserInformationProps) {
               />
             </Grid.Col>
           </Grid>
-          
+
           <Grid>
             <Grid.Col span={6}>
               <TextInput
@@ -110,7 +109,7 @@ export function UserInformation({ onSave }: UserInformationProps) {
                 onChange={(e) => handleChange('phone', e.target.value)}
               />
             </Grid.Col>
-            
+
             <Grid.Col span={6}>
               <TextInput
                 label="Location"
@@ -120,7 +119,7 @@ export function UserInformation({ onSave }: UserInformationProps) {
               />
             </Grid.Col>
           </Grid>
-          
+
           <Grid>
             <Grid.Col span={6}>
               <TextInput
@@ -131,7 +130,7 @@ export function UserInformation({ onSave }: UserInformationProps) {
                 onChange={(e) => handleChange('jobTitle', e.target.value)}
               />
             </Grid.Col>
-            
+
             <Grid.Col span={6}>
               <Select
                 label="Years of Experience"
@@ -149,7 +148,7 @@ export function UserInformation({ onSave }: UserInformationProps) {
               />
             </Grid.Col>
           </Grid>
-          
+
           <Select
             label="Education Level"
             placeholder="Select your highest education level"
@@ -163,7 +162,7 @@ export function UserInformation({ onSave }: UserInformationProps) {
             value={getValues().educationLevel}
             onChange={(value) => handleChange('educationLevel', value || '')}
           />
-          
+
           <Textarea
             label="Professional Summary"
             placeholder="Write a brief professional summary..."
@@ -175,4 +174,4 @@ export function UserInformation({ onSave }: UserInformationProps) {
       </form>
     </Paper>
   );
-} 
+}

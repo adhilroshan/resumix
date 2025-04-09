@@ -13,9 +13,10 @@ export const Route = createFileRoute('/setup/')({
 
 function SetupPage() {
   const [active, setActive] = useState(0)
-  const [resumeText, setResumeText] = useState('')
-  const [userInfo, setUserInfo] = useState({})
-  const [skills, setSkills] = useState<string[]>([])
+  // State setters are used in component callbacks
+  const [, setResumeText] = useState('')
+  const [, setUserInfo] = useState({})
+  const [, setSkills] = useState<string[]>([])
   const navigate = useNavigate()
 
   // Check if setup is already completed
@@ -24,7 +25,7 @@ function SetupPage() {
       const confirmContinue = window.confirm(
         'You have already completed the setup. Do you want to continue to the dashboard?'
       )
-      
+
       if (confirmContinue) {
         navigate({ to: '/dashboard' })
       }
@@ -55,16 +56,16 @@ function SetupPage() {
   return (
     <Container size="md" py="xl">
       <Title order={2} mb="xl">Setup Your Profile</Title>
-      
+
       <Stepper active={active} onStepClick={setActive} mb="xl">
         <Stepper.Step label="Resume Upload" description="Upload your PDF resume">
           <ResumeUpload onResumeProcessed={handleResumeProcessed} />
         </Stepper.Step>
-        
+
         <Stepper.Step label="Personal Info" description="Your personal information">
           <UserInformation onSave={handleUserInfoSave} />
         </Stepper.Step>
-        
+
         <Stepper.Step label="Skills" description="Add your skills">
           <SkillsInformation onSave={handleSkillsSave} />
         </Stepper.Step>
@@ -76,7 +77,7 @@ function SetupPage() {
             Back
           </Button>
         )}
-        
+
         {active < 2 ? (
           <Button onClick={nextStep}>
             Next Step
@@ -89,4 +90,4 @@ function SetupPage() {
       </Group>
     </Container>
   )
-} 
+}

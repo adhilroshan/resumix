@@ -29,7 +29,7 @@ function getDb(): Promise<IDBDatabase> {
         resolve((event.target as IDBOpenDBRequest).result);
       };
 
-      request.onerror = (event) => {
+      request.onerror = () => {
         console.error('IndexedDB error:', request.error);
         reject(`IndexedDB error: ${request.error}`);
         dbPromise = null; // Reset promise on error
@@ -91,4 +91,4 @@ export async function deletePendingAnalysis(id: number): Promise<void> {
       reject(request.error);
     };
   });
-} 
+}

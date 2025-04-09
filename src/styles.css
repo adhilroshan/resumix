@@ -1,4 +1,4 @@
-/* Import necessary fonts */
+/* Import fonts */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 /* Reset some basic elements */
@@ -93,9 +93,6 @@ a:hover {
   padding: 0;
   box-sizing: border-box;
 }
-
-/* Import fonts */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 /* Body styles */
 body {

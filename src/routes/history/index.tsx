@@ -15,13 +15,11 @@ import {
   ThemeIcon,
   rem,
   Checkbox,
-  Collapse,
   Box
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
 import { StorageService } from '../../services/storageService';
 import type { AnalysisResult } from '../../services/storageService'; // Import the type
-import { IconHistory, IconArrowBack, IconInfoCircle, IconGitCompare } from '@tabler/icons-react';
+import { IconArrowBack, IconInfoCircle, IconGitCompare } from '@tabler/icons-react';
 
 export const Route = createFileRoute('/history/')({
   component: HistoryPage,
@@ -31,8 +29,8 @@ function HistoryPage() {
   const [history, setHistory] = useState<AnalysisResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTimestamps, setSelectedTimestamps] = useState<string[]>([]);
+  const [compareButtonVisible, setCompareButtonVisible] = useState(false);
   const navigate = useNavigate();
-  const [compareButtonVisible, { open: showCompareButton, close: hideCompareButton }] = useDisclosure(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -48,12 +46,8 @@ function HistoryPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedTimestamps.length >= 2) {
-      showCompareButton();
-    } else {
-      hideCompareButton();
-    }
-  }, [selectedTimestamps, showCompareButton, hideCompareButton]);
+    setCompareButtonVisible(selectedTimestamps.length >= 2);
+  }, [selectedTimestamps]);
 
   const handleSelectionChange = (timestamp: string | undefined, checked: boolean) => {
     if (!timestamp) return;
@@ -110,8 +104,8 @@ function HistoryPage() {
           </Button>
         </Group>
 
-        <Collapse in={compareButtonVisible}>
-           <Box mb="md">
+        {compareButtonVisible && (
+          <Box mb="md">
             <Button
               fullWidth
               size="sm"
@@ -121,8 +115,8 @@ function HistoryPage() {
             >
               Compare {selectedTimestamps.length} Selected Analyses
             </Button>
-           </Box>
-        </Collapse>
+          </Box>
+        )}
 
         {isLoading ? (
           <Center style={{ height: rem(200) }}><Loader /></Center>

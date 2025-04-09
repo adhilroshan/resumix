@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Text, Group, Button, Paper, Box, Progress, Stack, Alert, Center } from '@mantine/core';
 import { extractTextFromPDF, extractPotentialSkills, extractContactInfo } from '../../utils/pdfUtils';
 import { StorageService } from '../../services/storageService';
+import type { UserInformation } from '../../services/storageService';
 
 interface ResumeUploadProps {
   onResumeProcessed: (text: string) => void;
@@ -53,13 +54,18 @@ export function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
       
       // If we found contact info, pre-fill the user information
       if (contactInfo.email || contactInfo.phone || contactInfo.name) {
-        const currentUserInfo = StorageService.getUserInformation() || {};
+        const currentUserInfo = StorageService.getUserInformation() || {} as UserInformation;
         
-        const updatedUserInfo = {
+        const updatedUserInfo: UserInformation = {
           ...currentUserInfo,
-          ...(contactInfo.email && { email: contactInfo.email }),
-          ...(contactInfo.phone && { phone: contactInfo.phone }),
-          ...(contactInfo.name && { fullName: contactInfo.name }),
+          fullName: contactInfo.name || currentUserInfo.fullName || '',
+          email: contactInfo.email || currentUserInfo.email || '',
+          phone: contactInfo.phone || currentUserInfo.phone || '',
+          location: currentUserInfo.location || '',
+          jobTitle: currentUserInfo.jobTitle || '',
+          yearsOfExperience: currentUserInfo.yearsOfExperience || '',
+          educationLevel: currentUserInfo.educationLevel || '',
+          bio: currentUserInfo.bio || ''
         };
         
         StorageService.saveUserInformation(updatedUserInfo);
@@ -84,7 +90,7 @@ export function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
         {!isProcessing ? (
           <>
             <Box
-              sx={{
+              style={{
                 border: '2px dashed #ced4da',
                 borderRadius: '4px',
                 padding: '20px',

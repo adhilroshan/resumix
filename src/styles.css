@@ -26,6 +26,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #f8f9fa;
   min-height: 100vh;
+  -webkit-text-size-adjust: 100%;
 }
 
 code {
@@ -54,4 +55,231 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  button,
+  input,
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* Increase touch targets */
+  .mantine-Button-root {
+    min-height: 48px;
+  }
+
+  /* Adjust spacing for mobile */
+  .mantine-Container-root {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* Basic element reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Import fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* Body styles */
+body {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Button */
+.button {
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition:
+    background-color 0.2s,
+    transform 0.1s;
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+/* Links */
+a {
+  color: #228be6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Custom styles for Resume Upload component */
+.resume-upload-paper {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.resume-upload-paper:hover {
+  transform: translateY(-2px);
+}
+
+.upload-box {
+  user-select: none;
+}
+
+.upload-box.dragging {
+  animation: pulse 1.5s infinite;
+}
+
+.upload-button {
+  transition: all 0.2s ease;
+}
+
+.upload-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.processing-container {
+  padding: 20px;
+}
+
+.ring-progress {
+  transition: all 0.3s ease;
+}
+
+/* Animation */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.cloud-icon {
+  transition: transform 0.3s ease;
+}
+
+.upload-box:hover .cloud-icon {
+  transform: translateY(-3px);
+}
+
+/* PWA specific styles */
+@media (display-mode: standalone) {
+  body {
+    /* Apply safe area insets for PWA mode */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* Special styling when running as installed PWA */
+  .app-header {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .app-footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+
+  /* Improve touch targets */
+  button,
+  .upload-box,
+  input[type="checkbox"],
+  input[type="radio"],
+  .mantine-Button-root {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better spacing for mobile */
+  .container {
+    padding: 0 0.75rem;
+  }
+
+  .upload-box {
+    padding: 15px 10px !important;
+  }
+
+  /* Fix mobile tap delay */
+  * {
+    touch-action: manipulation;
+  }
+
+  /* Better scrolling */
+  .scroll-container {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  body.auto-dark-mode {
+    background-color: #1a1b1e;
+    color: #e9ecef;
+  }
+
+  body.auto-dark-mode a {
+    color: #4dabf7;
+  }
+
+  body.auto-dark-mode .upload-box {
+    border-color: #495057 !important;
+  }
 }

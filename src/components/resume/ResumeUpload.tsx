@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { Text, Group, Button, Paper, Box, Progress, Stack, Alert, Center } from '@mantine/core';
+import { Text, Group, Button, Paper, Box, Progress, Stack, Alert, Center, Loader, RingProgress, useMantineTheme } from '@mantine/core';
+import { IconCloudUpload, IconFileUpload, IconCheck, IconX } from '@tabler/icons-react';
 import { extractTextFromPDF, extractPotentialSkills, extractContactInfo } from '../../utils/pdfUtils';
 import { StorageService } from '../../services/storageService';
 import type { UserInformation } from '../../services/storageService';
@@ -9,16 +10,21 @@ interface ResumeUploadProps {
 }
 
 export function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
+  const theme = useMantineTheme();
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] || null;
-    
+    handleFileSelection(selectedFile);
+  };
+
+  const handleFileSelection = (selectedFile: File | null) => {
     if (selectedFile && selectedFile.type === 'application/pdf') {
       setFile(selectedFile);
       setError(null);
@@ -27,6 +33,24 @@ export function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
       setError('Please upload a PDF file');
       setFile(null);
     }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFile = e.dataTransfer.files[0];
+    handleFileSelection(droppedFile);
   };
 
   const handleUpload = async () => {
@@ -83,21 +107,33 @@ export function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
   };
 
   return (
-    <Paper p="md" withBorder>
-      <Stack gap="md">
-        <Text size="lg" fw={500}>Upload your resume</Text>
+    <Paper p="xs md" withBorder className="resume-upload-paper">
+      <Stack gap="sm md">
+        <Text size="lg" fw={500} ta="center">Upload your resume</Text>
         
         {!isProcessing ? (
           <>
             <Box
+              className={`upload-box ${isDragging ? 'dragging' : ''}`}
               style={{
-                border: '2px dashed #ced4da',
-                borderRadius: '4px',
-                padding: '20px',
+                border: isDragging ? `2px solid ${theme.colors.blue[6]}` : '2px dashed #ced4da',
+                borderRadius: '8px',
+                padding: '20px 15px',
                 textAlign: 'center',
                 cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                background: isDragging ? '#e9f5ff' : 'transparent',
+                minHeight: '150px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                position: 'relative',
               }}
               onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
             >
               <input
                 type="file"
@@ -106,46 +142,91 @@ export function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
                 onChange={handleFileChange}
                 accept="application/pdf"
               />
-              <Text>
-                {file ? file.name : 'Click to select or drop your PDF resume'}
-              </Text>
+              
+              {file ? (
+                <>
+                  <Center style={{ marginBottom: '12px' }}>
+                    <IconFileUpload size={40} color={theme.colors.blue[6]} stroke={1.5} />
+                  </Center>
+                  <Text fw={500} size="md">
+                    {file.name}
+                  </Text>
+                  <Text size="sm" c="dimmed" mt="xs">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Center style={{ marginBottom: '12px' }}>
+                    <IconCloudUpload 
+                      size={40}
+                      color="#868e96" 
+                      stroke={1.5} 
+                      className="cloud-icon"
+                    />
+                  </Center>
+                  <Text size="md" fw={500} mb="xs">
+                    Upload your PDF resume
+                  </Text>
+                  <Text size="sm" c="dimmed" mb="xs">
+                    Tap here to select a file
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    PDF files only, max 10MB
+                  </Text>
+                </>
+              )}
             </Box>
 
             {error && (
-              <Alert color="red" title="Error">
+              <Alert color="red" title="Error" icon={<IconX size={16} />} radius="md">
                 {error}
               </Alert>
             )}
 
             {success && (
-              <Alert color="green" title="Success">
+              <Alert color="green" title="Success" icon={<IconCheck size={16} />} radius="md">
                 Resume successfully processed! Proceed to the next step.
               </Alert>
             )}
 
-            <Group justify="flex-end">
-              <Button
-                onClick={handleUpload}
-                disabled={!file || isProcessing}
-              >
-                {isProcessing ? 'Processing...' : 'Upload and Process'}
-              </Button>
-            </Group>
+            <Button
+              size="md"
+              radius="md"
+              fullWidth
+              onClick={handleUpload}
+              disabled={!file || isProcessing}
+              leftSection={<IconFileUpload size={20} />}
+              className="upload-button"
+              style={{ marginTop: '10px', minHeight: '50px' }}
+            >
+              {file ? 'Process Resume' : 'Select a PDF File'}
+            </Button>
           </>
         ) : (
-          <Box>
-            <Text ta="center" mb="sm">
+          <Box my="xl" className="processing-container">
+            <Text ta="center" fw={500} size="lg" mb="md">
               Processing your resume...
             </Text>
-            <Center mb="xs">
-              <Text fw={500}>{progress}%</Text>
+            
+            <Center mb="md">
+              <RingProgress
+                size={120}
+                thickness={12}
+                roundCaps
+                sections={[{ value: progress, color: 'blue' }]}
+                label={
+                  <Center>
+                    <Text fw={700} size="xl">{progress}%</Text>
+                  </Center>
+                }
+                className="ring-progress"
+              />
             </Center>
-            <Progress
-              value={progress}
-              size="lg"
-              striped
-              animated
-            />
+            
+            <Text ta="center" size="sm" c="dimmed">
+              Extracting text, analyzing skills, and preparing your profile...
+            </Text>
           </Box>
         )}
       </Stack>

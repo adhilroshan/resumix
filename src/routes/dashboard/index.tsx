@@ -11,10 +11,16 @@ import {
   Group, 
   TextInput,
   Alert,
-  Modal
+  Modal,
+  Card,
+  Avatar,
+  ThemeIcon,
+  Divider,
+  Box
 } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { StorageService } from '../../services/storageService'
+import { IconSearch, IconKey, IconUser, IconBrandOpenai, IconArrowRight } from '@tabler/icons-react'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
@@ -25,6 +31,7 @@ function DashboardPage() {
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [setupComplete, setSetupComplete] = useState(false)
+  const [userName, setUserName] = useState('')
   const navigate = useNavigate()
 
   // Check if setup is completed
@@ -38,6 +45,12 @@ function DashboardPage() {
       }, 3000)
       
       return () => clearTimeout(timeout)
+    }
+    
+    // Load user info for display
+    const userInfo = StorageService.getUserInformation()
+    if (userInfo) {
+      setUserName(userInfo.fullName)
     }
     
     // Check if API key is set
@@ -68,8 +81,13 @@ function DashboardPage() {
 
   if (!setupComplete) {
     return (
-      <Container size="md" py="xl">
-        <Alert color="blue" title="Setup Required">
+      <Container size="md" py="xl" px="xs">
+        <Alert 
+          color="blue" 
+          title="Setup Required" 
+          radius="md"
+          icon={<IconUser size={16} />}
+        >
           You need to complete the setup process first. Redirecting to setup...
         </Alert>
       </Container>
@@ -77,40 +95,90 @@ function DashboardPage() {
   }
 
   return (
-    <Container size="md" py="xl">
-      <Stack gap="lg">
-        <Title order={2}>Job Matcher Dashboard</Title>
-        <Text>
-          Paste a job description below and we'll analyze it against your resume
-          to give you personalized feedback and recommendations.
+    <Container size="md" py="md" px="xs">
+      <Stack gap="md">
+        {/* User greeting */}
+        <Card p="md" radius="md" withBorder>
+          <Group>
+            <Avatar color="blue" radius="xl" size="lg">
+              {userName ? userName.charAt(0).toUpperCase() : 'U'}
+            </Avatar>
+            <Box>
+              <Text fw={500} size="lg">
+                {userName ? `Hello, ${userName.split(' ')[0]}!` : 'Welcome!'}
+              </Text>
+              <Text size="sm" c="dimmed">
+                Find your perfect career match
+              </Text>
+            </Box>
+          </Group>
+        </Card>
+
+        <Title order={2} size="h3" my="xs" ta="center">Job Match Analysis</Title>
+        
+        <Text ta="center" size="sm">
+          Paste a job description below to analyze how well your resume matches the requirements.
         </Text>
 
-        <Paper withBorder p="md" mt="md">
+        <Paper withBorder p="md" mt="xs" radius="md">
           <Textarea
             placeholder="Paste the job description here..."
-            label="Job Description"
+            label={
+              <Text fw={500} mb="xs">
+                <IconSearch size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+                Job Description
+              </Text>
+            }
             description="Copy and paste the job description you want to analyze"
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            minRows={8}
+            minRows={6}
+            autosize
+            maxRows={12}
+            radius="md"
             required
+            styles={{
+              input: {
+                fontSize: '16px',  // Better for mobile readability
+              }
+            }}
           />
           
-          <Group justify="flex-end" mt="md">
-            <Button 
-              onClick={handleSubmit}
-              disabled={!jobDescription.trim()}
-            >
-              Analyze Match
-            </Button>
-          </Group>
+          <Button 
+            fullWidth
+            size="lg"
+            onClick={handleSubmit}
+            disabled={!jobDescription.trim()}
+            mt="md"
+            radius="md"
+            rightSection={<IconArrowRight size={16} />}
+            style={{ height: '50px' }}
+          >
+            Analyze Match
+          </Button>
         </Paper>
 
-        <Group justify="space-between">
-          <Button variant="outline" onClick={() => navigate({ to: '/setup' })}>
+        <Divider my="xs" />
+
+        <Group grow>
+          <Button 
+            size="md" 
+            radius="md" 
+            variant="outline" 
+            leftSection={<IconUser size={18} />}
+            onClick={() => navigate({ to: '/setup' })}
+            style={{ height: '46px' }}
+          >
             Edit Profile
           </Button>
-          <Button variant="subtle" onClick={() => setApiKeyModalOpen(true)}>
+          <Button 
+            size="md" 
+            radius="md" 
+            variant="light" 
+            leftSection={<IconKey size={18} />}
+            onClick={() => setApiKeyModalOpen(true)}
+            style={{ height: '46px' }}
+          >
             Set API Key
           </Button>
         </Group>
@@ -120,9 +188,18 @@ function DashboardPage() {
       <Modal
         opened={apiKeyModalOpen}
         onClose={() => apiKey.trim() ? setApiKeyModalOpen(false) : null}
-        title="OpenRouter API Key"
+        title={
+          <Group>
+            <ThemeIcon size="md" radius="xl" color="violet">
+              <IconBrandOpenai size={16} />
+            </ThemeIcon>
+            <Text fw={600}>OpenRouter API Key</Text>
+          </Group>
+        }
         closeOnClickOutside={false}
         closeOnEscape={false}
+        radius="md"
+        padding="lg"
       >
         <Stack>
           <Text size="sm">
@@ -135,11 +212,26 @@ function DashboardPage() {
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             required
+            size="md"
+            radius="md"
+            leftSection={<IconKey size={16} />}
+            styles={{
+              input: {
+                fontSize: '16px',  // Better for mobile readability
+              }
+            }}
           />
           <Text size="xs" c="dimmed">
             You can get an API key from <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer">OpenRouter.ai</a>
           </Text>
-          <Button onClick={handleSaveApiKey} disabled={!apiKey.trim()}>
+          <Button 
+            onClick={handleSaveApiKey} 
+            disabled={!apiKey.trim()}
+            size="lg"
+            radius="md"
+            fullWidth
+            mt="sm"
+          >
             Save API Key
           </Button>
         </Stack>

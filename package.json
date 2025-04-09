@@ -12,6 +12,7 @@
     "@emotion/react": "^11.14.0",
     "@mantine/core": "^7.17.4",
     "@mantine/hooks": "^7.17.4",
+    "@tabler/icons-react": "^3.31.0",
     "@tanstack/react-router-devtools": "^1.114.3",
     "@tanstack/router-plugin": "^1.114.3",
     "marked": "^15.0.8",

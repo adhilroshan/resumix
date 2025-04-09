@@ -19,7 +19,7 @@ import {
 } from '@mantine/core';
 import { StorageService } from '../../services/storageService';
 import type { AnalysisResult } from '../../services/storageService';
-import { IconArrowBack, IconAlertTriangle, IconChartBar, IconListCheck, IconBulb } from '@tabler/icons-react';
+import { IconArrowBack, IconAlertTriangle, IconListCheck, IconBulb } from '@tabler/icons-react';
 
 // Define the expected search parameters
 interface CompareSearch {
@@ -39,9 +39,10 @@ export const Route = createFileRoute('/compare/')({
     ) {
       // Redirect or throw? For now, default to empty array.
       // In a real app, redirecting back might be better.
-      return { analyses: [] }; 
+      return { analyses: [] };
     }
-    return search as CompareSearch;
+    // Create a new object with the correct type structure
+    return { analyses: search.analyses as string[] };
   },
 });
 
@@ -60,15 +61,15 @@ function ComparePage() {
         throw new Error('At least two analyses must be selected for comparison.');
       }
       const allHistory = StorageService.getAnalysisHistory();
-      const selectedAnalyses = allHistory.filter(item => 
+      const selectedAnalyses = allHistory.filter(item =>
         item.timestamp && selectedTimestamps.includes(item.timestamp)
       );
-      
+
       if (selectedAnalyses.length !== selectedTimestamps.length) {
          console.warn('Some selected analyses were not found in history.');
          // Potentially filter selectedTimestamps based on found analyses?
       }
-      
+
       if (selectedAnalyses.length < 2) {
          throw new Error('Could not find at least two selected analyses in history.');
       }
@@ -87,7 +88,7 @@ function ComparePage() {
     if (score >= 50) return 'yellow';
     return 'red';
   };
-  
+
   const formatDate = (timestamp: string | undefined): string => {
     if (!timestamp) return 'N/A';
     return new Date(timestamp).toLocaleDateString(); // Simpler date format
@@ -122,7 +123,7 @@ function ComparePage() {
                   <Stack gap="md">
                     <Badge variant="light" size="sm">{formatDate(item.timestamp)}</Badge>
                     <Text size="sm" lineClamp={3} fw={500}>Job: {item.jobDescription || 'N/A'}</Text>
-                    
+
                     <Divider label="Scores" labelPosition="center" />
                     <Group justify="space-around" mt="xs">
                       <Stack align="center" gap={0}>
@@ -138,7 +139,7 @@ function ComparePage() {
                         <Badge size="lg" color="violet">{item.experienceMatch}%</Badge>
                       </Stack>
                     </Group>
-                    
+
                     <Divider label="Recommendations" labelPosition="center" />
                     <Stack gap="xs">
                       {item.recommendations.slice(0, 3).map((rec, i) => (
@@ -149,7 +150,7 @@ function ComparePage() {
                       ))}
                       {item.recommendations.length === 0 && <Text size="xs" c="dimmed">None</Text>}
                     </Stack>
-                    
+
                     <Divider label="Missing Skills" labelPosition="center" />
                      <Stack gap="xs">
                       {item.missingSkills.slice(0, 3).map((skill, i) => (
@@ -169,4 +170,4 @@ function ComparePage() {
       </Stack>
     </Container>
   );
-} 
+}

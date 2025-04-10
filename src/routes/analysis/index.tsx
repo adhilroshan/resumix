@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { 
   Container, 
   Title, 
@@ -7,7 +7,6 @@ import {
   Stack, 
   Button, 
   Card, 
-  Alert, 
   Center, 
   Group, 
   Badge,
@@ -22,11 +21,8 @@ import {
   Paper
 } from '@mantine/core'
 import { 
-  IconX, 
-  IconCheck, 
   IconArrowLeft, 
   IconAlertCircle, 
-  IconReportAnalytics, 
   IconBriefcase,
   IconListCheck,
   IconBulb 
@@ -78,6 +74,127 @@ function AnalysisPage() {
     if (score >= 50) return 'yellow'
     return 'red'
   }
+
+  // Memoized analysis result card to prevent unnecessary re-renders
+  const AnalysisResultCard = memo(({ result }: { result: AnalysisResult }) => {
+    // Memoize the color calculations to avoid recalculating on every render
+    const colors = useMemo(() => {
+      return {
+        overall: getScoreColor(result.overallMatch),
+        skills: getScoreColor(result.skillsMatch),
+        experience: getScoreColor(result.experienceMatch)
+      };
+    }, [result.overallMatch, result.skillsMatch, result.experienceMatch]);
+
+    return (
+      <Card shadow="sm" p="xl" radius="lg" withBorder>
+        <Stack gap="xl">
+          <Group justify="space-between">
+            <Stack gap={0}>
+              <Text fw={500} fz="lg">Overall Match</Text>
+              <Group>
+                <Progress 
+                  value={result.overallMatch} 
+                  color={colors.overall}
+                  size="xl"
+                  radius="xl"
+                  style={{ width: rem(300) }}
+                />
+                <Badge size="xl" color={colors.overall}>{result.overallMatch}%</Badge>
+              </Group>
+            </Stack>
+          </Group>
+
+          <Grid>
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Paper p="md" withBorder shadow="xs" radius="md">
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Text fw={500}>Skills Match</Text>
+                    <Badge size="lg" color={colors.skills}>{result.skillsMatch}%</Badge>
+                  </Group>
+                  <Progress 
+                    value={result.skillsMatch} 
+                    color={colors.skills}
+                    size="md"
+                    radius="xl"
+                  />
+                </Stack>
+              </Paper>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Paper p="md" withBorder shadow="xs" radius="md">
+                <Stack gap="md">
+                  <Group justify="space-between">
+                    <Text fw={500}>Experience Match</Text>
+                    <Badge size="lg" color={colors.experience}>{result.experienceMatch}%</Badge>
+                  </Group>
+                  <Progress 
+                    value={result.experienceMatch} 
+                    color={colors.experience}
+                    size="md"
+                    radius="xl"
+                  />
+                </Stack>
+              </Paper>
+            </Grid.Col>
+          </Grid>
+        </Stack>
+      </Card>
+    );
+  });
+  
+  // Memoized recommendations component
+  const RecommendationsCard = memo(({ recommendations }: { recommendations: string[] }) => (
+    <Card shadow="sm" p="xl" radius="lg" withBorder>
+      <Stack gap="md">
+        <Group>
+          <ThemeIcon size={28} radius="md" color="green" variant="light">
+            <IconBulb size={18} />
+          </ThemeIcon>
+          <Text fw={500} fz="lg">Recommendations</Text>
+        </Group>
+        
+        <List spacing="xs" icon={
+          <ThemeIcon color="green" size={24} radius="xl">
+            <IconBulb size={14} />
+          </ThemeIcon>
+        }>
+          {recommendations.map((rec, index) => (
+            <List.Item key={index}>
+              <Text size="sm">{rec}</Text>
+            </List.Item>
+          ))}
+        </List>
+      </Stack>
+    </Card>
+  ));
+  
+  // Memoized missing skills component
+  const MissingSkillsCard = memo(({ missingSkills }: { missingSkills: string[] }) => (
+    <Card shadow="sm" p="xl" radius="lg" withBorder>
+      <Stack gap="md">
+        <Group>
+          <ThemeIcon size={28} radius="md" color="orange" variant="light">
+            <IconListCheck size={18} />
+          </ThemeIcon>
+          <Text fw={500} fz="lg">Missing Skills</Text>
+        </Group>
+        
+        <List spacing="xs" icon={
+          <ThemeIcon color="orange" size={24} radius="xl">
+            <IconListCheck size={14} />
+          </ThemeIcon>
+        }>
+          {missingSkills.map((skill, index) => (
+            <List.Item key={index}>
+              <Text size="sm">{skill}</Text>
+            </List.Item>
+          ))}
+        </List>
+      </Stack>
+    </Card>
+  ));
 
   if (isLoading) {
     return (
@@ -196,148 +313,16 @@ function AnalysisPage() {
         </Box>
 
         {/* Score Overview */}
-        <Card shadow="sm" p="xl" radius="lg" withBorder>
-          <Group mb="lg">
-            <ThemeIcon size={42} radius="md" variant="light" color="primary">
-              <IconReportAnalytics size={24} />
-            </ThemeIcon>
-            <Stack gap={0}>
-              <Title order={3} size="h4">Match Scores</Title>
-              <Text size="sm" c="dimmed">Overall compatibility with the job requirements</Text>
-            </Stack>
-          </Group>
-          
-          <Grid>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="md" withBorder radius="md" style={{ height: '100%' }}>
-                <Stack align="center" gap="xs">
-                  <Text fw={500} size="sm" c="dimmed">Overall Match</Text>
-                  <ThemeIcon 
-                    size={80} 
-                    radius="xl" 
-                    color={getScoreColor(analysisResult.overallMatch)}
-                    variant="light"
-                  >
-                    <Text fw={700} fz={24}>{analysisResult.overallMatch}%</Text>
-                  </ThemeIcon>
-                  <Progress 
-                    value={analysisResult.overallMatch} 
-                    color={getScoreColor(analysisResult.overallMatch)} 
-                    size="md" 
-                    radius="xl"
-                    mt="xs"
-                    style={{ width: '80%' }}
-                  />
-                </Stack>
-              </Paper>
-            </Grid.Col>
-            
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="md" withBorder radius="md" style={{ height: '100%' }}>
-                <Stack align="center" gap="xs">
-                  <Text fw={500} size="sm" c="dimmed">Skills Match</Text>
-                  <ThemeIcon 
-                    size={80} 
-                    radius="xl" 
-                    color="blue"
-                    variant="light"
-                  >
-                    <Text fw={700} fz={24}>{analysisResult.skillsMatch}%</Text>
-                  </ThemeIcon>
-                  <Progress 
-                    value={analysisResult.skillsMatch} 
-                    color="blue" 
-                    size="md" 
-                    radius="xl"
-                    mt="xs"
-                    style={{ width: '80%' }}
-                  />
-                </Stack>
-              </Paper>
-            </Grid.Col>
-            
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Paper p="md" withBorder radius="md" style={{ height: '100%' }}>
-                <Stack align="center" gap="xs">
-                  <Text fw={500} size="sm" c="dimmed">Experience Match</Text>
-                  <ThemeIcon 
-                    size={80} 
-                    radius="xl" 
-                    color="violet"
-                    variant="light"
-                  >
-                    <Text fw={700} fz={24}>{analysisResult.experienceMatch}%</Text>
-                  </ThemeIcon>
-                  <Progress 
-                    value={analysisResult.experienceMatch} 
-                    color="violet" 
-                    size="md" 
-                    radius="xl"
-                    mt="xs"
-                    style={{ width: '80%' }}
-                  />
-                </Stack>
-              </Paper>
-            </Grid.Col>
-          </Grid>
-        </Card>
+        <AnalysisResultCard result={analysisResult} />
 
         {/* Recommendations & Missing Skills */}
         <Grid gutter={20}>
           <Grid.Col span={{ base: 12, md: 6 }}>
-            <Card shadow="sm" p="lg" radius="lg" withBorder>
-              <Group mb="md">
-                <ThemeIcon size={36} radius="md" color="green" variant="light">
-                  <IconBulb size={20} />
-                </ThemeIcon>
-                <Title order={4}>Recommendations</Title>
-              </Group>
-              <List
-                spacing="xs"
-                size="sm"
-                center
-                icon={
-                  <ThemeIcon color="green" size={20} radius="xl">
-                    <IconCheck size={12} />
-                  </ThemeIcon>
-                }
-              >
-                {analysisResult.recommendations.map((rec, index) => (
-                  <List.Item key={index}>{rec}</List.Item>
-                ))}
-                {analysisResult.recommendations.length === 0 && (
-                  <Text c="dimmed" fs="italic">No recommendations available.</Text>
-                )}
-              </List>
-            </Card>
+            <RecommendationsCard recommendations={analysisResult.recommendations} />
           </Grid.Col>
           
           <Grid.Col span={{ base: 12, md: 6 }}>
-            <Card shadow="sm" p="lg" radius="lg" withBorder>
-              <Group mb="md">
-                <ThemeIcon size={36} radius="md" color="orange" variant="light">
-                  <IconListCheck size={20} />
-                </ThemeIcon>
-                <Title order={4}>Missing Skills</Title>
-              </Group>
-              <List
-                spacing="xs"
-                size="sm"
-                center
-                icon={
-                  <ThemeIcon color="orange" size={20} radius="xl">
-                    <IconX size={12} />
-                  </ThemeIcon>
-                }
-              >
-                {analysisResult.missingSkills.map((skill, index) => (
-                  <List.Item key={index}>{skill}</List.Item>
-                ))}
-                {analysisResult.missingSkills.length === 0 && (
-                  <Text c="dimmed" fs="italic">No missing skills identified.</Text>
-                )}
-              </List>
-            </Card>
+            <MissingSkillsCard missingSkills={analysisResult.missingSkills} />
           </Grid.Col>
         </Grid>
 

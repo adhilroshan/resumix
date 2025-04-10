@@ -15,6 +15,8 @@
     "@tabler/icons-react": "^3.31.0",
     "@tanstack/react-router-devtools": "^1.114.3",
     "@tanstack/router-plugin": "^1.114.3",
+    "@types/crypto-js": "^4.2.2",
+    "crypto-js": "^4.2.0",
     "marked": "^15.0.8",
     "openai": "^4.93.0",
     "pdfjs-dist": "^3.4.120",

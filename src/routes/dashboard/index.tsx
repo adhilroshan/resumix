@@ -18,11 +18,13 @@ import {
   Box,
   Divider,
   rem,
-  Badge
+  Badge,
+  Progress
 } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { StorageService } from '../../services/storageService'
-import { IconHistory, IconBell, IconUpload, IconSearch, IconRocket, IconFileDescription } from '@tabler/icons-react'
+import { IconHistory, IconBell, IconUpload, IconSearch, IconRocket, IconFileDescription, IconKey } from '@tabler/icons-react'
+import { ApiKeyManager } from '../../components/ApiKeyManager'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
@@ -31,9 +33,10 @@ export const Route = createFileRoute('/dashboard/')({
 function DashboardPage() {
   const [jobDescription, setJobDescription] = useState('')
   const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false)
-  const [apiKey, setApiKey] = useState('')
   const [setupComplete, setSetupComplete] = useState(false)
   const [userName, setUserName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingProgress, setLoadingProgress] = useState(0)
   const navigate = useNavigate()
   const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
 
@@ -71,7 +74,7 @@ function DashboardPage() {
       // Check if API key is set
       const savedApiKey = StorageService.getOpenRouterApiKey()
       if (savedApiKey) {
-        setApiKey(savedApiKey)
+        setApiKeyModalOpen(false)
       } else {
         setApiKeyModalOpen(true)
       }
@@ -98,16 +101,40 @@ function DashboardPage() {
   const handleSubmit = () => {
     if (!jobDescription.trim()) return
     
+    // Start loading state
+    setIsSubmitting(true);
+    
+    // Simulate progress animation
+    const interval = setInterval(() => {
+      setLoadingProgress(prev => {
+        const newValue = prev + (Math.random() * 10);
+        return newValue < 90 ? newValue : prev; // Cap at 90% until actual completion
+      });
+    }, 500);
+    
     // Store the job description in localStorage
     localStorage.setItem('currentJobDescription', jobDescription)
     
-    // Navigate to analysis page
-    navigate({ to: '/analysis' })
+    // Using setTimeout to ensure we see the loading state before navigation
+    // This prevents the UI from freezing during the transition
+    setTimeout(() => {
+      clearInterval(interval);
+      setLoadingProgress(100);
+      
+      // Small delay before navigation to show 100% completion
+      setTimeout(() => {
+        // Navigate to analysis page
+        navigate({ to: '/analysis' });
+        
+        // Reset states after navigation
+        setIsSubmitting(false);
+        setLoadingProgress(0);
+      }, 300);
+    }, 1000);
   }
 
   const handleSaveApiKey = () => {
-    if (apiKey.trim()) {
-      StorageService.saveOpenRouterApiKey(apiKey)
+    if (apiKeyModalOpen) {
       setApiKeyModalOpen(false)
     }
   }
@@ -126,30 +153,15 @@ function DashboardPage() {
     <Container size="lg" py="xl" px="md">
       <Modal
         opened={apiKeyModalOpen}
-        onClose={() => apiKey.trim() ? setApiKeyModalOpen(false) : null}
+        onClose={() => setApiKeyModalOpen(false)}
         title="OpenRouter API Key for Resumix"
         closeOnClickOutside={false}
         closeOnEscape={false}
       >
-        <Stack>
-          <Text size="sm">
-            Resumix requires an OpenRouter API key to analyze your resume.
-            Please enter your API key below.
-          </Text>
-          <TextInput
-            label="API Key"
-            placeholder="Enter your OpenRouter API key"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            required
-          />
-          <Text size="xs" c="dimmed">
-            You can get an API key from <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer">OpenRouter.ai</a>
-          </Text>
-          <Button onClick={handleSaveApiKey} disabled={!apiKey.trim()}>
-            Save API Key
-          </Button>
-        </Stack>
+        <ApiKeyManager 
+          onSave={() => setApiKeyModalOpen(false)} 
+          showValidationStatus={true}
+        />
       </Modal>
 
       <Stack gap="xl">
@@ -248,85 +260,66 @@ function DashboardPage() {
                   styles={{
                     input: {
                       border: '1px solid #e0e8f5',
-                      '&:focus-within': {
-                        borderColor: '#1579ff',
-                      },
                     }
                   }}
                 />
-              </Box>
-              
-              <Divider />
-              
-              <Group p="md" justify="right">
+                
                 <Button 
+                  mt="lg" 
                   size="md"
+                  fullWidth
                   onClick={handleSubmit}
-                  disabled={!jobDescription.trim()}
-                  rightSection={<IconRocket size={18} />}
+                  disabled={!jobDescription.trim() || isSubmitting}
                   radius="md"
+                  rightSection={isSubmitting ? null : <IconRocket size={18} />}
+                  loading={isSubmitting}
                 >
-                  Analyze Resume Match
+                  {isSubmitting ? `Analyzing... ${Math.round(loadingProgress)}%` : 'Analyze Resume Match'}
                 </Button>
-              </Group>
+                
+                {isSubmitting && (
+                  <Progress 
+                    value={loadingProgress} 
+                    size="sm" 
+                    striped 
+                    animated 
+                    mt="xs" 
+                    color="blue"
+                    radius="xl"
+                  />
+                )}
+              </Box>
             </Card>
           </Grid.Col>
           
-          {/* Quick Actions Section */}
+          {/* API Key Section */}
           <Grid.Col span={{ base: 12, lg: 4 }}>
-            <Stack gap="md">
-              <Card shadow="sm" p="lg" radius="lg" withBorder>
-                <Text fw={700} size="lg" mb="md">Quick Actions</Text>
-                
-                <Stack gap="sm">
-                  <Button 
-                    variant="light" 
-                    fullWidth 
-                    leftSection={<IconUpload size={18} />}
-                    onClick={() => navigate({ to: '/setup' })}
-                    radius="md"
-                  >
-                    Update Resume
-                  </Button>
-                  
-                  <Button 
-                    variant="light" 
-                    color="gray" 
-                    fullWidth 
-                    leftSection={<IconSearch size={18} />}
-                    onClick={() => window.open('https://www.linkedin.com/jobs', '_blank')}
-                    radius="md"
-                  >
-                    Browse Jobs
-                  </Button>
-                </Stack>
-              </Card>
-              
-              <Card shadow="sm" p="lg" radius="lg" withBorder>
-                <Text fw={700} size="lg" mb="sm">Your Resume</Text>
-                <Text size="sm" c="dimmed" mb="md">Current resume status</Text>
-                
-                <Group justify="space-between" mb="xs">
-                  <Text size="sm">Skills Listed</Text>
-                  <Badge>{StorageService.getUserSkills().length}</Badge>
+            <Card shadow="sm" p={0} radius="lg" withBorder>
+              <Box p="md">
+                <Group mb="md">
+                  <ThemeIcon size={42} radius="md" variant="light" color="primary">
+                    <IconKey size={24} />
+                  </ThemeIcon>
+                  <Stack gap={0}>
+                    <Title order={3} size="h4">API Keys</Title>
+                    <Text size="sm" c="dimmed">Manage your OpenRouter API keys</Text>
+                  </Stack>
                 </Group>
                 
-                <Group justify="space-between" mb="xs">
-                  <Text size="sm">Last Updated</Text>
-                  <Text size="sm" c="dimmed">
-                    {(() => {
-                      const resumeData = StorageService.getResumeData();
-                      if (!resumeData?.uploadDate) return 'Never';
-                      try {
-                        return new Date(resumeData.uploadDate).toLocaleDateString();
-                      } catch (e) {
-                        return 'Unknown';
-                      }
-                    })()}
-                  </Text>
-                </Group>
-              </Card>
-            </Stack>
+                <Paper p="sm" withBorder radius="md" bg="rgba(245, 247, 250, 0.5)">
+                  <Group justify="apart">
+                    <Text size="sm">Auto-rotate between multiple keys</Text>
+                    <Button 
+                      variant="light" 
+                      size="xs"
+                      onClick={() => setApiKeyModalOpen(true)}
+                    >
+                      Manage Keys
+                    </Button>
+                  </Group>
+                </Paper>
+              </Box>
+            </Card>
           </Grid.Col>
         </Grid>
       </Stack>

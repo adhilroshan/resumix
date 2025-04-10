@@ -10,6 +10,115 @@ const ASSETS_TO_CACHE = [
   '/pwa-512x512.png'
 ];
 
+// --- API Key Management ---
+const STORAGE_KEY = 'openrouter_api_keys';
+const DEFAULT_KEYS = [
+  // Default key(s) here - consider adding at least one fallback key
+  // 'sk-or-v1-example-key'
+];
+
+// Simple API key rotation system for the service worker
+class ApiKeyManager {
+  constructor() {
+    this.keys = [];
+    this.currentIndex = 0;
+    this.loadKeys();
+  }
+  
+  async loadKeys() {
+    try {
+      // Try to get from IndexedDB first
+      const db = await this.getDb();
+      const keys = await this.getKeysFromDb(db);
+      
+      if (keys && keys.length > 0) {
+        this.keys = keys;
+        return;
+      }
+      
+      // Fallback to default keys
+      this.keys = DEFAULT_KEYS.map(key => ({
+        key,
+        isValid: true,
+        errorCount: 0
+      }));
+    } catch (error) {
+      console.error('[SW] Failed to load API keys:', error);
+      // Fallback to default keys
+      this.keys = DEFAULT_KEYS.map(key => ({
+        key,
+        isValid: true,
+        errorCount: 0
+      }));
+    }
+  }
+  
+  getDb() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('resumeMatcherDB', 1);
+      request.onsuccess = (event) => resolve(event.target.result);
+      request.onerror = (event) => reject('IndexedDB error: ' + request.error);
+    });
+  }
+  
+  getKeysFromDb(db) {
+    return new Promise((resolve, reject) => {
+      if (!db.objectStoreNames.contains('apiKeys')) {
+        resolve([]);
+        return;
+      }
+      
+      const transaction = db.transaction('apiKeys', 'readonly');
+      const store = transaction.objectStore('apiKeys');
+      const request = store.getAll();
+      
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject('Error getting API keys: ' + request.error);
+    });
+  }
+  
+  getNextKey() {
+    if (this.keys.length === 0) {
+      return null;
+    }
+    
+    // Find the next valid key
+    let count = 0;
+    while (count < this.keys.length) {
+      this.currentIndex = (this.currentIndex + 1) % this.keys.length;
+      if (this.keys[this.currentIndex].isValid) {
+        return this.keys[this.currentIndex].key;
+      }
+      count++;
+    }
+    
+    // No valid keys found
+    return null;
+  }
+  
+  markKeyAsInvalid(key) {
+    const keyIndex = this.keys.findIndex(k => k.key === key);
+    if (keyIndex >= 0) {
+      this.keys[keyIndex].isValid = false;
+      this.keys[keyIndex].errorCount++;
+    }
+  }
+  
+  incrementErrorCount(key) {
+    const keyIndex = this.keys.findIndex(k => k.key === key);
+    if (keyIndex >= 0) {
+      this.keys[keyIndex].errorCount++;
+      // Mark as invalid after too many errors
+      if (this.keys[keyIndex].errorCount >= 5) {
+        this.keys[keyIndex].isValid = false;
+      }
+    }
+  }
+}
+
+// Initialize the key manager
+const apiKeyManager = new ApiKeyManager();
+
 // Install event - cache our static assets
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing Resumix Service Worker...');
@@ -90,8 +199,53 @@ async function deletePendingAnalysisSw(id) {
   });
 }
 
-// --- Simplified API Call Logic for SW ---
-async function performAnalysisRequest(apiKey, prompt) {
+// --- Simplified API Call Logic for SW with Key Rotation ---
+async function performAnalysisRequest(userProvidedKey, prompt) {
+  // First try with user provided key if available
+  if (userProvidedKey) {
+    try {
+      return await makeApiRequest(userProvidedKey, prompt);
+    } catch (error) {
+      console.log('[SW] User provided key failed, falling back to rotation');
+      // Continue to key rotation if user key fails
+    }
+  }
+  
+  // Try with rotated keys
+  let attempts = 0;
+  const maxAttempts = 3;  // Try up to 3 different keys
+  
+  while (attempts < maxAttempts) {
+    attempts++;
+    const apiKey = apiKeyManager.getNextKey();
+    
+    if (!apiKey) {
+      throw new Error('No valid API keys available');
+    }
+    
+    try {
+      return await makeApiRequest(apiKey, prompt);
+    } catch (error) {
+      console.error(`[SW] API request failed with key (attempt ${attempts}):`, error);
+      
+      // Check if it's a rate limit or auth error
+      if (error.status === 429 || error.status === 401 || error.status === 403) {
+        apiKeyManager.markKeyAsInvalid(apiKey);
+      } else {
+        apiKeyManager.incrementErrorCount(apiKey);
+      }
+      
+      // Continue to next key if we haven't reached max attempts
+      if (attempts >= maxAttempts) {
+        throw error;
+      }
+    }
+  }
+  
+  throw new Error('All API key attempts failed');
+}
+
+async function makeApiRequest(apiKey, prompt) {
   const response = await fetch(
     "https://openrouter.ai/api/v1/chat/completions",
     {
@@ -110,8 +264,11 @@ async function performAnalysisRequest(apiKey, prompt) {
   );
 
   if (!response.ok) {
-    throw new Error(`SW API request failed: ${response.status}`);
+    const error = new Error(`SW API request failed: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
+  
   const data = await response.json();
   const content = data.choices[0]?.message?.content;
   if (!content) throw new Error('SW API: No content');

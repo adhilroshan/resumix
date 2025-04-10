@@ -256,9 +256,13 @@ export class ApiKeyService {
     const validKeys = this.keys.filter(k => k.isValid);
     if (validKeys.length === 0) return null;
     
+    // Get the current index atomically
+    const currentIndex = this.currentKeyIndex;
+    // Update the index for the next call
+    this.currentKeyIndex = (currentIndex + 1) % validKeys.length;
+    
     // Simple circular access of valid keys
-    const nextKey = validKeys[this.currentKeyIndex % validKeys.length];
-    this.currentKeyIndex = (this.currentKeyIndex + 1) % validKeys.length;
+    const nextKey = validKeys[currentIndex % validKeys.length];
     
     return nextKey.key;
   }

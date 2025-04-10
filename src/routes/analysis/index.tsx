@@ -7,13 +7,11 @@ import {
   Stack, 
   Button, 
   Card, 
-  Center, 
   Group, 
   Badge,
   ThemeIcon,
   rem,
   Progress,
-  Loader,
   Box,
   List,
   Grid,
@@ -24,21 +22,24 @@ import {
   IconArrowLeft, 
   IconAlertCircle, 
   IconBriefcase,
-  IconListCheck,
-  IconBulb 
+  IconCheck,
+  IconX
 } from '@tabler/icons-react'
 import { StorageService } from '../../services/storageService'
 import type { AnalysisResult } from '../../services/storageService'
+import { createLazyRouteComponent } from '../../utils/routeUtils'
+import { ErrorDisplay } from '../../components/ErrorDisplay'
+import { LoadingScreen } from '../../components/LoadingScreen'
+import { AsyncContentLoader } from '../../components/AsyncContentLoader'
 
-export const Route = createFileRoute('/analysis/')({
-  component: AnalysisPage,
-})
-
+// Component implementation separated for better code splitting
 function AnalysisPage() {
-  const [isLoading, setIsLoading] = useState(true)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+
+  // Add a loading state
+  const [isPageLoading, setIsPageLoading] = useState(true)
 
   useEffect(() => {
     const loadAnalysisResult = () => {
@@ -53,11 +54,20 @@ function AnalysisPage() {
         console.error('Error loading analysis result:', err)
         setError('Failed to load analysis result. Please try again.')
       } finally {
-        setIsLoading(false)
+        // Add a small delay to prevent flickering for fast loads
+        setTimeout(() => {
+          setIsPageLoading(false)
+        }, 300)
       }
     }
 
-    loadAnalysisResult()
+    // Simulate initial data loading
+    const timer = setTimeout(() => {
+      setIsPageLoading(false)
+      loadAnalysisResult()
+    }, 300)
+    
+    return () => clearTimeout(timer)
   }, [])
 
   const handleBackToDashboard = () => {
@@ -66,6 +76,25 @@ function AnalysisPage() {
 
   const handleViewHistory = () => {
     navigate({ to: '/history' })
+  }
+
+  const handleRetry = () => {
+    setError(null)
+    setIsPageLoading(true)
+    try {
+      const result = StorageService.getLastAnalysisResult()
+      if (result) {
+        setAnalysisResult(result)
+        setIsPageLoading(false)
+      } else {
+        setError('No analysis result found. Please analyze a job description first.')
+        setIsPageLoading(false)
+      }
+    } catch (err) {
+      console.error('Error loading analysis result:', err)
+      setError('Failed to load analysis result. Please try again.')
+      setIsPageLoading(false)
+    }
   }
 
   // Helper function to get color based on score
@@ -144,101 +173,19 @@ function AnalysisPage() {
     );
   });
   
-  // Memoized recommendations component
-  const RecommendationsCard = memo(({ recommendations }: { recommendations: string[] }) => (
-    <Card shadow="sm" p="xl" radius="lg" withBorder>
-      <Stack gap="md">
-        <Group>
-          <ThemeIcon size={28} radius="md" color="green" variant="light">
-            <IconBulb size={18} />
-          </ThemeIcon>
-          <Text fw={500} fz="lg">Recommendations</Text>
-        </Group>
-        
-        <List spacing="xs" icon={
-          <ThemeIcon color="green" size={24} radius="xl">
-            <IconBulb size={14} />
-          </ThemeIcon>
-        }>
-          {recommendations.map((rec, index) => (
-            <List.Item key={index}>
-              <Text size="sm">{rec}</Text>
-            </List.Item>
-          ))}
-        </List>
-      </Stack>
-    </Card>
-  ));
-  
-  // Memoized missing skills component
-  const MissingSkillsCard = memo(({ missingSkills }: { missingSkills: string[] }) => (
-    <Card shadow="sm" p="xl" radius="lg" withBorder>
-      <Stack gap="md">
-        <Group>
-          <ThemeIcon size={28} radius="md" color="orange" variant="light">
-            <IconListCheck size={18} />
-          </ThemeIcon>
-          <Text fw={500} fz="lg">Missing Skills</Text>
-        </Group>
-        
-        <List spacing="xs" icon={
-          <ThemeIcon color="orange" size={24} radius="xl">
-            <IconListCheck size={14} />
-          </ThemeIcon>
-        }>
-          {missingSkills.map((skill, index) => (
-            <List.Item key={index}>
-              <Text size="sm">{skill}</Text>
-            </List.Item>
-          ))}
-        </List>
-      </Stack>
-    </Card>
-  ));
-
-  if (isLoading) {
-    return (
-      <Container size="lg" py="xl">
-        <Center style={{ height: rem(300) }}>
-          <Stack align="center" gap="md">
-            <Loader size="xl" />
-            <Text c="dimmed">Analyzing results...</Text>
-          </Stack>
-        </Center>
-      </Container>
-    )
+  if (isPageLoading) {
+    return <LoadingScreen variant="inline" text="Loading analysis results..." />
   }
 
   if (error) {
     return (
-      <Container size="lg" py="xl">
-        <Box
-          style={{ 
-            background: 'linear-gradient(135deg, #fff0f0 0%, #ffecec 100%)',
-            borderRadius: rem(12),
-            padding: rem(32),
-            marginBottom: rem(24),
-            border: '1px solid #ffcdd2'
-          }}
-        >
-          <Stack gap="lg" align="center">
-            <ThemeIcon size={rem(80)} radius="xl" color="red" variant="light">
-              <IconAlertCircle size={rem(40)} />
-            </ThemeIcon>
-            <Title order={2} ta="center">Analysis Error</Title>
-            <Text ta="center" size="lg">{error}</Text>
-            <Button 
-              mt="md" 
-              size="md"
-              radius="md"
-              leftSection={<IconArrowLeft size={rem(16)} />}
-              onClick={handleBackToDashboard}
-            >
-              Back to Dashboard
-            </Button>
-          </Stack>
-        </Box>
-      </Container>
+      <ErrorDisplay 
+        message={error}
+        type="notFound"
+        onBack={handleBackToDashboard}
+        onRetry={handleRetry}
+        onNavigateHome={handleBackToDashboard}
+      />
     )
   }
 
@@ -313,32 +260,64 @@ function AnalysisPage() {
         </Box>
 
         {/* Score Overview */}
-        <AnalysisResultCard result={analysisResult} />
+        <AsyncContentLoader priority="high" delay={100}>
+          {analysisResult && <AnalysisResultCard result={analysisResult} />}
+        </AsyncContentLoader>
 
         {/* Recommendations & Missing Skills */}
-        <Grid gutter={20}>
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <RecommendationsCard recommendations={analysisResult.recommendations} />
-          </Grid.Col>
-          
-          <Grid.Col span={{ base: 12, md: 6 }}>
-            <MissingSkillsCard missingSkills={analysisResult.missingSkills} />
-          </Grid.Col>
-        </Grid>
-
+        <AsyncContentLoader delay={300}>
+          <Grid gutter={20}>
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Paper withBorder p="md" radius="md">
+                <Title order={4} mb="md">Recommendations</Title>
+                <List spacing="xs" icon={
+                  <ThemeIcon color="blue" size={24} radius="xl">
+                    <IconCheck size={16} />
+                  </ThemeIcon>
+                }>
+                  {analysisResult?.recommendations.map((recommendation, index) => (
+                    <List.Item key={index}>
+                      <Text>{recommendation}</Text>
+                    </List.Item>
+                  ))}
+                </List>
+              </Paper>
+            </Grid.Col>
+            
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Paper withBorder p="md" radius="md">
+                <Title order={4} mb="md">Missing Skills</Title>
+                <List spacing="xs" icon={
+                  <ThemeIcon color="red" size={24} radius="xl">
+                    <IconX size={16} />
+                  </ThemeIcon>
+                }>
+                  {analysisResult?.missingSkills.map((skill, index) => (
+                    <List.Item key={index}>
+                      <Text>{skill}</Text>
+                    </List.Item>
+                  ))}
+                </List>
+              </Paper>
+            </Grid.Col>
+          </Grid>
+        </AsyncContentLoader>
+        
         {/* Job Description */}
-        <Card shadow="sm" p="lg" radius="lg" withBorder>
-          <Group mb="md">
-            <ThemeIcon size={36} radius="md" color="gray" variant="light">
-              <IconBriefcase size={20} />
-            </ThemeIcon>
-            <Title order={4}>Job Description</Title>
-          </Group>
-          <Divider mb="md" />
-          <Box style={{ maxHeight: rem(300), overflow: 'auto' }}>
-            <Text style={{ whiteSpace: 'pre-wrap' }}>{analysisResult.jobDescription}</Text>
-          </Box>
-        </Card>
+        <AsyncContentLoader delay={700} loadingText="Loading job recommendations..." priority="low">
+          <Card shadow="sm" p="lg" radius="lg" withBorder>
+            <Group mb="md">
+              <ThemeIcon size={36} radius="md" color="gray" variant="light">
+                <IconBriefcase size={20} />
+              </ThemeIcon>
+              <Title order={4}>Job Description</Title>
+            </Group>
+            <Divider mb="md" />
+            <Box style={{ maxHeight: rem(300), overflow: 'auto' }}>
+              <Text style={{ whiteSpace: 'pre-wrap' }}>{analysisResult?.jobDescription || ''}</Text>
+            </Box>
+          </Card>
+        </AsyncContentLoader>
 
         {/* Actions */}
         <Group justify="flex-end">
@@ -352,4 +331,12 @@ function AnalysisPage() {
       </Stack>
     </Container>
   )
-} 
+}
+
+// Default export for lazy loading
+export default AnalysisPage
+
+// Route definition using lazy loading
+export const Route = createFileRoute('/analysis/')({
+  component: createLazyRouteComponent(() => Promise.resolve({ default: AnalysisPage }))
+}) 

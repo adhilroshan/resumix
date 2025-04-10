@@ -21,9 +21,10 @@ import {
 import { StorageService } from '../../services/storageService';
 import type { AnalysisResult } from '../../services/storageService'; // Import the type
 import { IconArrowBack, IconInfoCircle, IconGitCompare, IconCalendar, IconBriefcase } from '@tabler/icons-react';
+import { createLazyRouteComponent } from '../../utils/routeUtils';
 
 export const Route = createFileRoute('/history/')({
-  component: HistoryPage,
+  component: createLazyRouteComponent(() => import('./index')),
 });
 
 function HistoryPage() {
@@ -276,4 +277,6 @@ function HistoryPage() {
       </Stack>
     </Container>
   );
-} 
+}
+
+export default HistoryPage 

@@ -27,14 +27,189 @@ interface ApiResponseResult {
 
 // Simple request cache to prevent duplicate API calls
 type CacheKey = string;
-type CacheValue = {
-  result: ApiResponseResult;
-  timestamp: number;
-};
 
-// In-memory cache for API results with a 15-minute expiration
-const apiResultCache = new Map<CacheKey, CacheValue>();
-const CACHE_EXPIRATION = 15 * 60 * 1000; // 15 minutes
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000; // Extend cache to 24 hours
+const CACHE_DB_NAME = 'apiResponseCache';
+const CACHE_STORE_NAME = 'responses';
+const CACHE_DB_VERSION = 1;
+
+// Enhanced cache structure with IndexedDB support
+class ApiResponseCache {
+  private dbPromise: Promise<IDBDatabase> | null = null;
+  private memoryCache = new Map<string, any>();
+  
+  constructor() {
+    this.initDatabase();
+  }
+  
+  private initDatabase(): Promise<IDBDatabase> {
+    if (!this.dbPromise) {
+      this.dbPromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(CACHE_DB_NAME, CACHE_DB_VERSION);
+        
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          
+          // Create object store with timestamp index for expiration management
+          if (!db.objectStoreNames.contains(CACHE_STORE_NAME)) {
+            const store = db.createObjectStore(CACHE_STORE_NAME, { keyPath: 'key' });
+            store.createIndex('timestamp', 'timestamp', { unique: false });
+          }
+        };
+        
+        request.onsuccess = (event) => {
+          resolve((event.target as IDBOpenDBRequest).result);
+        };
+        
+        request.onerror = () => {
+          console.error('Error opening cache database:', request.error);
+          reject(request.error);
+          this.dbPromise = null;
+        };
+      });
+    }
+    
+    return this.dbPromise;
+  }
+  
+  async get(key: string): Promise<any | null> {
+    // Try memory cache first for fastest access
+    if (this.memoryCache.has(key)) {
+      const cached = this.memoryCache.get(key);
+      if (Date.now() - cached.timestamp < CACHE_EXPIRATION) {
+        return cached.data;
+      }
+      this.memoryCache.delete(key);
+    }
+    
+    try {
+      const db = await this.initDatabase();
+      return new Promise((resolve) => {
+        const transaction = db.transaction(CACHE_STORE_NAME, 'readonly');
+        const store = transaction.objectStore(CACHE_STORE_NAME);
+        const request = store.get(key);
+        
+        request.onsuccess = () => {
+          if (!request.result) {
+            resolve(null);
+            return;
+          }
+          
+          const { data, timestamp } = request.result;
+          
+          // Check if expired
+          if (Date.now() - timestamp > CACHE_EXPIRATION) {
+            // Clean up expired entry
+            this.delete(key).catch(console.error);
+            resolve(null);
+            return;
+          }
+          
+          // Update memory cache for faster subsequent access
+          this.memoryCache.set(key, { data, timestamp });
+          resolve(data);
+        };
+        
+        request.onerror = () => {
+          console.error('Error getting from cache:', request.error);
+          resolve(null); // Resolve with null on error to not break the app
+        };
+      });
+    } catch (error) {
+      console.error('Cache access error:', error);
+      return null;
+    }
+  }
+  
+  async set(key: string, data: any): Promise<void> {
+    // Update memory cache
+    const timestamp = Date.now();
+    this.memoryCache.set(key, { data, timestamp });
+    
+    try {
+      const db = await this.initDatabase();
+      return new Promise((resolve) => {
+        const transaction = db.transaction(CACHE_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(CACHE_STORE_NAME);
+        store.put({ key, data, timestamp });
+        
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => {
+          console.error('Error setting cache:', transaction.error);
+          resolve(); // Resolve anyway to not break the app
+        };
+      });
+    } catch (error) {
+      console.error('Cache write error:', error);
+      // Continue without persistent caching if IDB fails
+    }
+  }
+  
+  async delete(key: string): Promise<void> {
+    // Remove from memory cache
+    this.memoryCache.delete(key);
+    
+    try {
+      const db = await this.initDatabase();
+      return new Promise((resolve) => {
+        const transaction = db.transaction(CACHE_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(CACHE_STORE_NAME);
+        store.delete(key);
+        
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => {
+          console.error('Error deleting from cache:', transaction.error);
+          resolve(); // Resolve anyway to not break the app
+        };
+      });
+    } catch (error) {
+      console.error('Cache delete error:', error);
+      // Continue even if deletion fails
+    }
+  }
+  
+  // Cleanup expired cache entries - can be called periodically
+  async cleanupExpired(): Promise<void> {
+    try {
+      const db = await this.initDatabase();
+      const expirationThreshold = Date.now() - CACHE_EXPIRATION;
+      
+      return new Promise((resolve) => {
+        const transaction = db.transaction(CACHE_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(CACHE_STORE_NAME);
+        const index = store.index('timestamp');
+        
+        // Find all entries older than expiration threshold
+        const range = IDBKeyRange.upperBound(expirationThreshold);
+        const request = index.openCursor(range);
+        
+        request.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest).result;
+          if (cursor) {
+            // Delete expired entry
+            cursor.delete();
+            cursor.continue();
+          }
+        };
+        
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => {
+          console.error('Error during cache cleanup:', transaction.error);
+          resolve();
+        };
+      });
+    } catch (error) {
+      console.error('Cache cleanup error:', error);
+    }
+  }
+}
+
+// Create singleton instance of cache
+const apiCache = new ApiResponseCache();
+
+// Clean up expired cache entries when service initializes and periodically
+apiCache.cleanupExpired().catch(console.error);
+setInterval(() => apiCache.cleanupExpired().catch(console.error), 30 * 60 * 1000); // Every 30 minutes
 
 // Generate a cache key based on resume and job description
 function generateCacheKey(resumeData: AnalysisResumeData, jobDescription: string): CacheKey {
@@ -46,29 +221,6 @@ function generateCacheKey(resumeData: AnalysisResumeData, jobDescription: string
     hash |= 0;
   }
   return `analysis-${hash}`;
-}
-
-// Check if a cached result exists and is still valid
-function getCachedResult(cacheKey: CacheKey): ApiResponseResult | null {
-  const cached = apiResultCache.get(cacheKey);
-  if (!cached) return null;
-  
-  // Check if the cache has expired
-  const now = Date.now();
-  if (now - cached.timestamp > CACHE_EXPIRATION) {
-    apiResultCache.delete(cacheKey);
-    return null;
-  }
-  
-  return cached.result;
-}
-
-// Cache an API result
-function cacheResult(cacheKey: CacheKey, result: ApiResponseResult): void {
-  apiResultCache.set(cacheKey, {
-    result,
-    timestamp: Date.now()
-  });
 }
 
 // Request queue to batch API requests
@@ -104,15 +256,16 @@ const processQueue = throttle(async () => {
   }
 }, 500); // Throttle to max 2 requests per second
 
+// Modify the existing analyzeResumeMatch function to use the enhanced cache
 export async function analyzeResumeMatch(
   resumeData: AnalysisResumeData,
   jobDescription: string,
 ): Promise<ApiResponseResult> {
-  // Generate a cache key for this request
+  // Generate a cache key
   const cacheKey = generateCacheKey(resumeData, jobDescription);
   
-  // Check if we have a cached result
-  const cachedResult = getCachedResult(cacheKey);
+  // Try to get from enhanced cache
+  const cachedResult = await apiCache.get(cacheKey);
   if (cachedResult) {
     console.log('Using cached analysis result');
     return cachedResult;
@@ -123,7 +276,11 @@ export async function analyzeResumeMatch(
     requestQueue.push({
       resumeData,
       jobDescription,
-      resolve,
+      resolve: async (result) => {
+        // Cache the result before resolving
+        await apiCache.set(cacheKey, result).catch(console.error);
+        resolve(result);
+      },
       reject
     });
     
@@ -137,9 +294,6 @@ async function processAnalysisRequest(
   resumeData: AnalysisResumeData,
   jobDescription: string
 ): Promise<ApiResponseResult> {
-  // Generate a cache key for this request
-  const cacheKey = generateCacheKey(resumeData, jobDescription);
-
   // Get user's API key as the first option
   const userApiKey = StorageService.getOpenRouterApiKey();
   const prompt = `
@@ -293,9 +447,6 @@ async function processAnalysisRequest(
           lastError = new Error('Invalid structure in API response JSON');
           continue;
         }
-
-        // Cache the result for future use
-        cacheResult(cacheKey, result);
 
         // Save successful result directly to StorageService (which handles history)
         StorageService.saveAnalysisResult(

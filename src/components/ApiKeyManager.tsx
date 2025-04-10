@@ -20,15 +20,12 @@ import {
 } from '@mantine/core';
 import { 
   IconKey, 
-  IconCheck, 
-  IconX, 
   IconAlertCircle,
   IconRefresh,
   IconInfoCircle,
   IconTrash,
   IconPlus,
   IconUpload,
-  IconListDetails,
   IconCopy
 } from '@tabler/icons-react';
 import { ApiKeyService } from '../services/apiKeyService';
@@ -39,12 +36,11 @@ interface ApiKeyManagerProps {
   showValidationStatus?: boolean;
 }
 
-export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyManagerProps) {
+export function ApiKeyManager({ showValidationStatus = true }: ApiKeyManagerProps) {
   const [newApiKey, setNewApiKey] = useState('');
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
-  const [validationStatus, setValidationStatus] = useState<'none' | 'valid' | 'invalid'>('none');
   const [errorMessage, setErrorMessage] = useState('');
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [bulkImportKeys, setBulkImportKeys] = useState('');
@@ -88,13 +84,11 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
       await apiKeyService.addKey(key.trim());
       
       // Key added successfully
-      setValidationStatus('valid');
       await loadKeys(); // Refresh the keys list
       setNewApiKey(''); // Clear the input
       return true;
     } catch (error) {
       console.error('API key validation error:', error);
-      setValidationStatus('invalid');
       
       if (error instanceof Error) {
         setErrorMessage(
@@ -186,11 +180,11 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
   
   return (
     <Paper p="lg" withBorder radius="md" pos="relative">
-      <LoadingOverlay visible={isLoading} overlayBlur={2} />
+      <LoadingOverlay visible={isLoading} overlayProps={{ backgroundOpacity: 0.7 }} />
       
-      <Stack spacing="md">
-        <Group position="apart" align="center">
-          <Group spacing="xs">
+      <Stack gap="md">
+        <Group justify="apart" align="center">
+          <Group gap="xs">
             <ThemeIcon size="md" color="blue" variant="light">
               <IconKey size={16} />
             </ThemeIcon>
@@ -201,7 +195,7 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
             <Button 
               size="xs"
               variant="light"
-              leftIcon={<IconUpload size={14} />}
+              leftSection={<IconUpload size={14} />}
               onClick={() => setBulkImportOpen(true)}
             >
               Bulk Import
@@ -220,22 +214,21 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
         
         <Box>
           <Text size="sm" fw={500} mb="xs">Add New API Key</Text>
-          <Group spacing="xs">
+          <Group gap="xs">
             <TextInput
               placeholder="Enter your OpenRouter API key"
               value={newApiKey}
               onChange={(e) => {
                 setNewApiKey(e.target.value);
-                setValidationStatus('none');
               }}
               style={{ flex: 1 }}
-              icon={<IconKey size={16} />}
+              leftSection={<IconKey size={16} />}
             />
             <Button 
               onClick={handleAddKey}
               disabled={!newApiKey.trim() || isValidating}
               loading={isValidating}
-              leftIcon={<IconPlus size={16} />}
+              leftSection={<IconPlus size={16} />}
             >
               Add
             </Button>
@@ -271,7 +264,7 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
                   {keys.map((keyItem, index) => (
                     <tr key={index}>
                       <td>
-                        <Group spacing="xs" noWrap>
+                        <Group gap="xs" wrap="nowrap">
                           <Text size="sm" style={{ fontFamily: 'monospace' }}>
                             {keyItem.key}
                           </Text>
@@ -295,7 +288,7 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
                         </Badge>
                       </td>
                       <td>
-                        <Group spacing="xs" justify="left">
+                        <Group gap="xs" wrap="nowrap">
                           <Badge color="blue" size="sm">
                             {keyItem.useCount} uses
                           </Badge>
@@ -315,7 +308,7 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
                         )}
                       </td>
                       <td>
-                        <Group spacing="xs" noWrap>
+                        <Group gap="xs" wrap="nowrap">
                           <Tooltip label="Reset Key Status">
                             <ActionIcon 
                               color="blue" 
@@ -356,7 +349,7 @@ export function ApiKeyManager({ onSave, showValidationStatus = true }: ApiKeyMan
         title="Bulk Import API Keys"
         size="md"
       >
-        <Stack spacing="md">
+        <Stack gap="md">
           <Text size="sm">
             Enter one API key per line. These keys will be added to your collection.
           </Text>
@@ -368,7 +361,7 @@ sk-or-xxxx3..."
             value={bulkImportKeys}
             onChange={(e) => setBulkImportKeys(e.target.value)}
           />
-          <Group justify="right">
+          <Group justify="flex-end">
             <Button variant="light" onClick={() => setBulkImportOpen(false)}>
               Cancel
             </Button>

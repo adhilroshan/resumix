@@ -1,14 +1,19 @@
 // This is the service worker for the Resume Matcher PWA
 
-const CACHE_NAME = 'resumix-v2';
+const CACHE_NAME = 'resumix-v2.2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/favicon.ico',
   '/manifest.json',
   '/pwa-192x192.png',
-  '/pwa-512x512.png'
+  '/pwa-512x512.png',
+  '/src/main.tsx',
+  '/src/styles.css'
 ];
+
+// Add core runtime caching strategies
+const RUNTIME_CACHE = 'resumix-runtime';
 
 // --- API Key Management ---
 const STORAGE_KEY = 'openrouter_api_keys';
@@ -121,7 +126,10 @@ const apiKeyManager = new ApiKeyManager();
 
 // Install event - cache our static assets
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing Resumix Service Worker...');
+  console.log('[Service Worker] Installing Resumix Service Worker v2.2...');
+  // Skip waiting to activate immediately
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -131,38 +139,147 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activating Resumix Service Worker...');
+  console.log('[Service Worker] Activating Resumix Service Worker v2.2...');
+  // Take control immediately
+  event.waitUntil(self.clients.claim());
+  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+          .filter((name) => name !== CACHE_NAME && name !== RUNTIME_CACHE)
+          .map((name) => {
+            console.log('[Service Worker] Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
     })
   );
 });
 
-// Fetch event - serve from cache first, then network
+// Fetch event - Network First for API, Cache First for static assets
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
-        // Don't cache API requests or non-GET requests
-        if (
-          !event.request.url.includes('/api/') &&
-          event.request.method === 'GET'
-        ) {
-          return caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, fetchResponse.clone());
-            return fetchResponse;
+  const url = new URL(event.request.url);
+  
+  // Ignore DevTools requests, browser extensions, etc.
+  if (!/^https?:/.test(url.protocol)) return;
+  
+  // Parse the URL for smarter caching decisions
+  const isAPI = url.pathname.includes('/api/') || url.hostname.includes('openrouter.ai');
+  const isNavigationRequest = event.request.mode === 'navigate';
+  const isStaticAsset = ASSETS_TO_CACHE.includes(url.pathname) || 
+                         url.pathname.match(/\.(js|css|woff2?|ttf|png|jpe?g|svg|gif)$/i);
+  
+  if (isAPI) {
+    // Network-first for API requests
+    event.respondWith(networkFirstStrategy(event.request));
+  } else if (isNavigationRequest) {
+    // Cache-first with network fallback for navigation
+    event.respondWith(cacheFirstStrategy(event.request));
+  } else if (isStaticAsset) {
+    // Stale-while-revalidate for static assets
+    event.respondWith(staleWhileRevalidateStrategy(event.request));
+  } else {
+    // Default to network-first for everything else
+    event.respondWith(networkFirstStrategy(event.request));
+  }
+});
+
+// Cache-first strategy
+function cacheFirstStrategy(request) {
+  return caches.match(request)
+    .then(cachedResponse => {
+      if (cachedResponse) {
+        // Return cached response and update cache in background
+        updateCache(request);
+        return cachedResponse;
+      }
+      
+      // Not in cache, get from network
+      return fetch(request)
+        .then(response => {
+          // Cache the response for future
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, responseToCache);
           });
-        }
-        return fetchResponse;
+          
+          return response;
+        })
+        .catch(error => {
+          console.error('[SW] Fetch failed:', error);
+          // For navigation requests, return a fallback
+          if (request.mode === 'navigate') {
+            return caches.match('/');
+          }
+          throw error;
+        });
+    });
+}
+
+// Network-first strategy
+function networkFirstStrategy(request) {
+  return fetch(request)
+    .then(response => {
+      // Don't cache non-successful responses or opaque responses
+      if (!response || response.status !== 200 || response.type === 'opaque') {
+        return response;
+      }
+      
+      // Cache successful responses
+      const responseToCache = response.clone();
+      caches.open(RUNTIME_CACHE).then(cache => {
+        cache.put(request, responseToCache);
+      });
+      
+      return response;
+    })
+    .catch(error => {
+      // Network failed, try the cache
+      return caches.match(request);
+    });
+}
+
+// Stale-while-revalidate strategy
+function staleWhileRevalidateStrategy(request) {
+  return caches.match(request)
+    .then(cachedResponse => {
+      // Update the cache in the background
+      const fetchPromise = fetch(request)
+        .then(networkResponse => {
+          // Cache the new response
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(RUNTIME_CACHE).then(cache => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(error => {
+          console.error('[SW] Background fetch failed:', error);
+        });
+      
+      // Return the cached response immediately if we have it
+      return cachedResponse || fetchPromise;
+    });
+}
+
+// Update cache in the background
+function updateCache(request) {
+  fetch(request)
+    .then(response => {
+      if (!response || response.status !== 200) return;
+      
+      const responseToCache = response.clone();
+      caches.open(CACHE_NAME).then(cache => {
+        cache.put(request, responseToCache);
       });
     })
-  );
-});
+    .catch(error => {
+      console.error('[SW] Update cache failed:', error);
+    });
+}
 
 // --- IndexedDB Utilities (simplified for SW context) ---
 const DB_NAME_SW = 'resumeMatcherDB';

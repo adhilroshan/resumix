@@ -48,7 +48,7 @@ export async function makeOpenRouterRequest(
     return response;
   } catch (error) {
     // Network errors or other exceptions
-    await apiKeyService.reportError(apiKey, error.message || 'Network error');
+    await apiKeyService.reportError(apiKey, error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 } 

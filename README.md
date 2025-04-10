@@ -20,6 +20,21 @@ A Progressive Web Application (PWA) that helps users match their resume to job d
 - An OpenRouter API key (https://openrouter.ai)
 - A modern web browser (Chrome, Firefox, Edge, etc.)
 
+### API Key Setup
+
+There are two ways to provide OpenRouter API keys:
+
+1. **Environment Variables (Recommended for deployment)**:
+   - Create a `.env` file based on the `.env.example` template
+   - Add your OpenRouter API key(s) to the `VITE_OPENROUTER_API_KEYS` variable
+   - You can add multiple keys separated by commas for automatic rotation
+   - For production deployment, add these keys to your platform's environment variables
+
+2. **User Interface**:
+   - If no environment keys are available, users will need to add their own API keys
+   - The app includes an API key management interface
+   - Advanced users can still add their own keys even if environment keys exist
+
 ### Installation
 
 Resumix is a web application that can be installed as a PWA:
@@ -42,6 +57,10 @@ cd resumix
 
 # Install dependencies
 npm install
+
+# Copy the environment example file and add your OpenRouter API key
+cp .env.example .env
+# Edit .env with your API key(s)
 
 # Start the development server
 npm start

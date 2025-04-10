@@ -11,7 +11,7 @@ export async function makeOpenRouterRequest(
   const apiKey = await apiKeyService.getNextKey();
   
   if (!apiKey) {
-    throw new Error('No valid API keys available. Please add a valid API key.');
+    throw new Error('API service is not properly configured. Please try again later or contact support.');
   }
 
   const headers = new Headers(options.headers);

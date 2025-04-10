@@ -20,11 +20,8 @@ export interface ApiKey {
 // Replace the environment variable reference with a browser-compatible version
 // Instead of using process.env which is Node-specific
 const DEFAULT_KEYS: string[] = 
-  // Try to access from window.__ENV__ if it exists (common pattern for exposing env vars to browser)
-  (typeof window !== 'undefined' && (window as any).__ENV__?.NEXT_PUBLIC_DEFAULT_API_KEYS) ?
-    (window as any).__ENV__.NEXT_PUBLIC_DEFAULT_API_KEYS.split(',') :
-    // Fallback to empty array if no default keys are configured
-    [];
+  // Use Vite's environment variables
+  (import.meta.env.VITE_OPENROUTER_API_KEYS || '').split(',').filter(Boolean);
 
 export class ApiKeyService {
   private static instance: ApiKeyService;
@@ -247,6 +244,7 @@ export class ApiKeyService {
     if (!this.initialized) await this.initialize();
     
     if (this.keys.length === 0) {
+      console.error("No API keys available. The app is not properly configured.");
       return null;
     }
     
@@ -254,7 +252,10 @@ export class ApiKeyService {
     
     // Create a temporary array of valid keys for faster access
     const validKeys = this.keys.filter(k => k.isValid);
-    if (validKeys.length === 0) return null;
+    if (validKeys.length === 0) {
+      console.error("All API keys are invalid. Please contact support.");
+      return null;
+    }
     
     // Get the current index atomically
     const currentIndex = this.currentKeyIndex;
@@ -441,17 +442,33 @@ export class ApiKeyService {
   private async ensureDefaultKeys(): Promise<void> {
     await this.initialize();
     
-    // If we have no keys and DEFAULT_KEYS are available, add them
-    if (this.keys.length === 0 && DEFAULT_KEYS.length > 0) {
-      console.log(`Adding ${DEFAULT_KEYS.length} default API keys`);
+    // Always check for new environment keys that might have been added
+    if (DEFAULT_KEYS.length > 0) {
+      console.log(`Found ${DEFAULT_KEYS.length} default API key(s) from environment variables`);
       
-      // Add each default key
+      // Add each default key if it doesn't already exist
       for (const key of DEFAULT_KEYS) {
         if (key && key.trim()) {
-          await this.addKey(key.trim());
+          // Check if key already exists
+          const keyExists = this.keyCache.has(key.trim());
+          if (!keyExists) {
+            await this.addKey(key.trim());
+          }
         }
       }
+    } else if (this.keys.length === 0) {
+      console.warn("No API keys found in environment variables. Application functionality may be limited.");
     }
+  }
+
+  /**
+   * Check if we have any environment-provided keys
+   */
+  public async hasEnvironmentKeys(): Promise<boolean> {
+    if (!this.initialized) await this.initialize();
+    
+    // For now, a simple check if we have any keys at all
+    return this.keys.length > 0;
   }
 }
 

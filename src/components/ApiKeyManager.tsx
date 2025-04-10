@@ -26,7 +26,8 @@ import {
   IconTrash,
   IconPlus,
   IconUpload,
-  IconCopy
+  IconCopy,
+  IconChevronDown
 } from '@tabler/icons-react';
 import { ApiKeyService } from '../services/apiKeyService';
 import type { ApiKey } from '../services/apiKeyService';
@@ -44,6 +45,8 @@ export function ApiKeyManager({ showValidationStatus = true }: ApiKeyManagerProp
   const [errorMessage, setErrorMessage] = useState('');
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [bulkImportKeys, setBulkImportKeys] = useState('');
+  const [hasEnvironmentKeys, setHasEnvironmentKeys] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   
   // Load API keys on mount
   useEffect(() => {
@@ -57,6 +60,9 @@ export function ApiKeyManager({ showValidationStatus = true }: ApiKeyManagerProp
       await apiKeyService.initialize();
       const allKeys = await apiKeyService.getAllKeys();
       setKeys(allKeys);
+      
+      // Check if environment keys are available
+      setHasEnvironmentKeys(await apiKeyService.hasEnvironmentKeys());
     } catch (error) {
       setErrorMessage('Failed to load API keys');
       console.error('Error loading API keys:', error);
@@ -64,6 +70,37 @@ export function ApiKeyManager({ showValidationStatus = true }: ApiKeyManagerProp
       setIsLoading(false);
     }
   };
+  
+  // If there are environment keys and the user hasn't chosen to show advanced settings, 
+  // we can just show a simplified view
+  if (hasEnvironmentKeys && !showAdvancedSettings && !isLoading) {
+    return (
+      <Paper p="lg" withBorder radius="md">
+        <Stack gap="md">
+          <Group>
+            <ThemeIcon size="md" color="green" variant="light">
+              <IconKey size={16} />
+            </ThemeIcon>
+            <Text fw={500} size="md">API Keys Configured</Text>
+            <Badge color="green">Active</Badge>
+          </Group>
+          
+          <Text size="sm" c="dimmed">
+            API keys are configured via environment variables. No action needed.
+          </Text>
+          
+          <Button 
+            variant="subtle" 
+            leftSection={<IconChevronDown size={16} />}
+            onClick={() => setShowAdvancedSettings(true)}
+            size="sm"
+          >
+            Show Advanced Settings
+          </Button>
+        </Stack>
+      </Paper>
+    );
+  }
   
   const validateApiKey = async (key: string) => {
     if (!key.trim()) {
@@ -192,6 +229,15 @@ export function ApiKeyManager({ showValidationStatus = true }: ApiKeyManagerProp
           </Group>
           
           <Group>
+            {hasEnvironmentKeys && (
+              <Button 
+                size="xs" 
+                variant="subtle"
+                onClick={() => setShowAdvancedSettings(false)}
+              >
+                Hide Advanced Settings
+              </Button>
+            )}
             <Button 
               size="xs"
               variant="light"

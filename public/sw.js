@@ -1,6 +1,6 @@
 // This is the service worker for the Resume Matcher PWA
 
-const CACHE_NAME = 'resumix-v1';
+const CACHE_NAME = 'resumix-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -233,6 +233,14 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   console.log('[Resumix SW] Notification click received:', event);
   // ... rest of notificationclick ...
+});
+
+// Add message event listener for skipWaiting
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[Service Worker] Skipping waiting...');
+    self.skipWaiting();
+  }
 });
 
 // ... rest of the service worker ...

@@ -12,11 +12,17 @@ import {
   TextInput,
   Alert,
   Modal,
-  Card
+  Card,
+  Grid,
+  ThemeIcon,
+  Box,
+  Divider,
+  rem,
+  Badge
 } from '@mantine/core'
 import { useNavigate } from '@tanstack/react-router'
 import { StorageService } from '../../services/storageService'
-import { IconHistory, IconBell } from '@tabler/icons-react'
+import { IconHistory, IconBell, IconUpload, IconSearch, IconRocket, IconFileDescription } from '@tabler/icons-react'
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
@@ -117,7 +123,7 @@ function DashboardPage() {
   }
 
   return (
-    <Container size="md" py="md" px="xs">
+    <Container size="lg" py="xl" px="md">
       <Modal
         opened={apiKeyModalOpen}
         onClose={() => apiKey.trim() ? setApiKeyModalOpen(false) : null}
@@ -146,45 +152,66 @@ function DashboardPage() {
         </Stack>
       </Modal>
 
-      <Stack gap="lg">
-        <Card withBorder p="lg" radius="md">
-          <Group justify="space-between" align="flex-start">
-            <Stack gap="xs">
-              <Title order={3} size="h4">Welcome to Resumix, {userName || 'User'}!</Title>
-              <Text size="sm" c="dimmed" mt={-5}>
-                Ready to optimize your resume?
-              </Text>
-            </Stack>
-            <Button 
-              variant="light" 
-              size="sm" 
-              leftSection={<IconHistory size={16} />}
-              onClick={() => navigate({ to: '/history' })}
-            >
-              View History
-            </Button>
-          </Group>
+      <Stack gap="xl">
+        {/* Welcome Header */}
+        <Card 
+          withBorder 
+          p="xl" 
+          radius="lg" 
+          style={{ 
+            background: 'linear-gradient(135deg, #f5f9ff 0%, #eaf4ff 100%)',
+            borderColor: '#d1e6ff'
+          }}
+        >
+          <Grid align="center">
+            <Grid.Col span={{ base: 12, sm: 8 }}>
+              <Stack gap="xs">
+                <Text fz="sm" fw={500} tt="uppercase" c="dimmed">Dashboard</Text>
+                <Title order={2} size="h3" fw={700}>Welcome, {userName || 'User'}!</Title>
+                <Text size="md" c="dimmed" mt={4}>
+                  Optimize your resume for job applications and track your progress
+                </Text>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 4 }} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button 
+                variant="light" 
+                size="md" 
+                leftSection={<IconHistory size={18} />}
+                onClick={() => navigate({ to: '/history' })}
+                radius="md"
+              >
+                View Analysis History
+              </Button>
+            </Grid.Col>
+          </Grid>
         </Card>
 
-        {/* Notification Permission Prompt (only if default/denied) */}
+        {/* Notification Permission Alert */}
         {notificationPermission !== 'granted' && 'Notification' in window && (
           <Alert
             color={notificationPermission === 'denied' ? "orange" : "blue"}
-            title="Enable Notifications?"
-            icon={<IconBell size={18} />}
-            withCloseButton={notificationPermission === 'denied'} // Allow dismissing if denied
+            title="Enable Notifications"
+            icon={<IconBell size={20} />}
+            withCloseButton={notificationPermission === 'denied'}
             onClose={() => { /* Could set a flag to not show again */ }}
             radius="md"
+            styles={{
+              root: {
+                border: '1px solid',
+                borderColor: notificationPermission === 'denied' ? '#ffe0b2' : '#bbdefb',
+              }
+            }}
           >
-            <Group justify="space-between">
-              <Text size="sm">
+            <Group justify="space-between" align="center">
+              <Text size="sm" lh={1.5}>
                 {notificationPermission === 'denied'
                   ? "Notifications are blocked. Enable them in browser settings to get background analysis updates."
                   : "Allow notifications to be alerted when background analysis is complete."
                 }
               </Text>
               {notificationPermission === 'default' && (
-                <Button size="xs" onClick={requestNotificationPermission}>
+                <Button size="sm" onClick={requestNotificationPermission} radius="md">
                   Allow
                 </Button>
               )}
@@ -192,26 +219,116 @@ function DashboardPage() {
           </Alert>
         )}
 
-        <Paper withBorder p="md" mt="xs" radius="md">
-          <Stack>
-            <Textarea
-              placeholder="Paste the job description here..."
-              label="Job Description"
-              description="Copy and paste the job description you want to analyze"
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              minRows={8}
-              required
-            />
-          </Stack>
-        </Paper>
-
-        <Button
-          onClick={handleSubmit}
-          disabled={!jobDescription.trim()}
-        >
-          Analyze Match
-        </Button>
+        {/* Main Content */}
+        <Grid gutter={30}>
+          {/* Resume Analysis Section */}
+          <Grid.Col span={{ base: 12, lg: 8 }}>
+            <Card shadow="sm" p={0} radius="lg" withBorder>
+              <Box p="xl" mb="xs">
+                <Group mb="md">
+                  <ThemeIcon size={42} radius="md" variant="light" color="primary">
+                    <IconFileDescription size={24} />
+                  </ThemeIcon>
+                  <Stack gap={0}>
+                    <Title order={3} size="h4">Job Description Analysis</Title>
+                    <Text size="sm" c="dimmed">Match your resume against a job posting</Text>
+                  </Stack>
+                </Group>
+                
+                <Textarea
+                  placeholder="Paste the job description here to analyze how well your resume matches..."
+                  label="Job Description"
+                  description="Copy and paste the job description you want to analyze against your resume"
+                  minRows={8}
+                  maxRows={12}
+                  radius="md"
+                  size="md"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  styles={{
+                    input: {
+                      border: '1px solid #e0e8f5',
+                      '&:focus-within': {
+                        borderColor: '#1579ff',
+                      },
+                    }
+                  }}
+                />
+              </Box>
+              
+              <Divider />
+              
+              <Group p="md" justify="right">
+                <Button 
+                  size="md"
+                  onClick={handleSubmit}
+                  disabled={!jobDescription.trim()}
+                  rightSection={<IconRocket size={18} />}
+                  radius="md"
+                >
+                  Analyze Resume Match
+                </Button>
+              </Group>
+            </Card>
+          </Grid.Col>
+          
+          {/* Quick Actions Section */}
+          <Grid.Col span={{ base: 12, lg: 4 }}>
+            <Stack gap="md">
+              <Card shadow="sm" p="lg" radius="lg" withBorder>
+                <Text fw={700} size="lg" mb="md">Quick Actions</Text>
+                
+                <Stack gap="sm">
+                  <Button 
+                    variant="light" 
+                    fullWidth 
+                    leftSection={<IconUpload size={18} />}
+                    onClick={() => navigate({ to: '/setup' })}
+                    radius="md"
+                  >
+                    Update Resume
+                  </Button>
+                  
+                  <Button 
+                    variant="light" 
+                    color="gray" 
+                    fullWidth 
+                    leftSection={<IconSearch size={18} />}
+                    onClick={() => window.open('https://www.linkedin.com/jobs', '_blank')}
+                    radius="md"
+                  >
+                    Browse Jobs
+                  </Button>
+                </Stack>
+              </Card>
+              
+              <Card shadow="sm" p="lg" radius="lg" withBorder>
+                <Text fw={700} size="lg" mb="sm">Your Resume</Text>
+                <Text size="sm" c="dimmed" mb="md">Current resume status</Text>
+                
+                <Group justify="space-between" mb="xs">
+                  <Text size="sm">Skills Listed</Text>
+                  <Badge>{StorageService.getUserSkills().length}</Badge>
+                </Group>
+                
+                <Group justify="space-between" mb="xs">
+                  <Text size="sm">Last Updated</Text>
+                  <Text size="sm" c="dimmed">
+                    {(() => {
+                      const resumeData = StorageService.getResumeData();
+                      if (!resumeData?.uploadDate) return 'Never';
+                      try {
+                        return new Date(resumeData.uploadDate).toLocaleDateString();
+                      } catch (e) {
+                        return 'Unknown';
+                      }
+                    })()}
+                  </Text>
+                </Group>
+              </Card>
+            </Stack>
+          </Grid.Col>
+        </Grid>
       </Stack>
     </Container>
   )

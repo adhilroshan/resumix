@@ -1,3 +1,4 @@
+![banner](public/resumix-banner.png)
 # Resumix PWA
 
 A Progressive Web Application (PWA) that helps users match their resume to job descriptions using AI. Resumix analyzes the gap between your resume and the job you want, providing actionable recommendations to improve your chances.

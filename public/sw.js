@@ -1,6 +1,6 @@
 // This is the service worker for the Resume Matcher PWA
 
-const CACHE_NAME = 'resumix-v2.2';
+const CACHE_NAME = 'resumix-v1.4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

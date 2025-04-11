@@ -14,6 +14,7 @@ export interface ResumeData {
   resumeText: string;
   fileName: string;
   uploadDate: string;
+  sourceType?: 'pdf' | 'text' | 'latex';
 }
 
 export interface AnalysisResult {
@@ -83,14 +84,27 @@ export class StorageService {
   }
 
   // Save resume data
-  static saveResumeData(text: string, fileName: string): void {
+  static saveResumeData(data: ResumeData): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.RESUME, text);
-      localStorage.setItem(STORAGE_KEYS.RESUME_FILE_NAME, fileName);
-      localStorage.setItem('resumeUploadDate', new Date().toISOString());
+      localStorage.setItem(STORAGE_KEYS.RESUME, data.resumeText);
+      localStorage.setItem(STORAGE_KEYS.RESUME_FILE_NAME, data.fileName);
+      localStorage.setItem('resumeUploadDate', data.uploadDate || new Date().toISOString());
+      if (data.sourceType) {
+        localStorage.setItem('resumeSourceType', data.sourceType);
+      }
     } catch (error) {
       console.error('Error saving resume data to storage:', error);
     }
+  }
+
+  // For backward compatibility
+  static saveResumeText(text: string, fileName: string): void {
+    this.saveResumeData({
+      resumeText: text,
+      fileName,
+      uploadDate: new Date().toISOString(),
+      sourceType: 'pdf'
+    });
   }
 
   // Get user skills

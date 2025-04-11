@@ -5,6 +5,7 @@ import { theme } from '../theme'
 import { useEffect, useState } from 'react'
 import { LoadingScreen } from '../components/LoadingScreen'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { AppNavigation } from '../components/AppNavigation'
 
 export const Route = createRootRoute({
   component: RootComponent
@@ -62,7 +63,9 @@ function RootComponent() {
           withLogo={true}
         />
       ) : (
-        <Outlet />
+        <AppNavigation>
+          <Outlet />
+        </AppNavigation>
       )}
       <TanStackRouterDevtools />
     </MantineProvider>

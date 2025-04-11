@@ -13,6 +13,7 @@
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
 import { Route as SetupIndexImport } from './routes/setup/index'
+import { Route as ProfileIndexImport } from './routes/profile/index'
 import { Route as HistoryIndexImport } from './routes/history/index'
 import { Route as DashboardIndexImport } from './routes/dashboard/index'
 import { Route as CompareIndexImport } from './routes/compare/index'
@@ -29,6 +30,12 @@ const IndexRoute = IndexImport.update({
 const SetupIndexRoute = SetupIndexImport.update({
   id: '/setup/',
   path: '/setup/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ProfileIndexRoute = ProfileIndexImport.update({
+  id: '/profile/',
+  path: '/profile/',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -95,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryIndexImport
       parentRoute: typeof rootRoute
     }
+    '/profile/': {
+      id: '/profile/'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileIndexImport
+      parentRoute: typeof rootRoute
+    }
     '/setup/': {
       id: '/setup/'
       path: '/setup'
@@ -113,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof CompareIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/history': typeof HistoryIndexRoute
+  '/profile': typeof ProfileIndexRoute
   '/setup': typeof SetupIndexRoute
 }
 
@@ -122,6 +137,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/history': typeof HistoryIndexRoute
+  '/profile': typeof ProfileIndexRoute
   '/setup': typeof SetupIndexRoute
 }
 
@@ -132,6 +148,7 @@ export interface FileRoutesById {
   '/compare/': typeof CompareIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/history/': typeof HistoryIndexRoute
+  '/profile/': typeof ProfileIndexRoute
   '/setup/': typeof SetupIndexRoute
 }
 
@@ -143,9 +160,17 @@ export interface FileRouteTypes {
     | '/compare'
     | '/dashboard'
     | '/history'
+    | '/profile'
     | '/setup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analysis' | '/compare' | '/dashboard' | '/history' | '/setup'
+  to:
+    | '/'
+    | '/analysis'
+    | '/compare'
+    | '/dashboard'
+    | '/history'
+    | '/profile'
+    | '/setup'
   id:
     | '__root__'
     | '/'
@@ -153,6 +178,7 @@ export interface FileRouteTypes {
     | '/compare/'
     | '/dashboard/'
     | '/history/'
+    | '/profile/'
     | '/setup/'
   fileRoutesById: FileRoutesById
 }
@@ -163,6 +189,7 @@ export interface RootRouteChildren {
   CompareIndexRoute: typeof CompareIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   HistoryIndexRoute: typeof HistoryIndexRoute
+  ProfileIndexRoute: typeof ProfileIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
 }
 
@@ -172,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareIndexRoute: CompareIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   HistoryIndexRoute: HistoryIndexRoute,
+  ProfileIndexRoute: ProfileIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
 }
 
@@ -190,6 +218,7 @@ export const routeTree = rootRoute
         "/compare/",
         "/dashboard/",
         "/history/",
+        "/profile/",
         "/setup/"
       ]
     },
@@ -207,6 +236,9 @@ export const routeTree = rootRoute
     },
     "/history/": {
       "filePath": "history/index.tsx"
+    },
+    "/profile/": {
+      "filePath": "profile/index.tsx"
     },
     "/setup/": {
       "filePath": "setup/index.tsx"

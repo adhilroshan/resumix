@@ -65,7 +65,12 @@ export function ResumeUpload({ onResumeProcessed }: ResumeUploadProps) {
       const text = await extractTextFromPDF(file, setProgress);
       
       // Save to storage service
-      StorageService.saveResumeData(text, file.name);
+      StorageService.saveResumeData({
+        resumeText: text,
+        fileName: file.name,
+        uploadDate: new Date().toISOString(),
+        sourceType: 'text'
+      });
       
       // Extract potential skills and contact info
       const potentialSkills = extractPotentialSkills(text);

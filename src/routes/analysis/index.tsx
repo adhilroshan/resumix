@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useEffect, useMemo, memo } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { 
   Container, 
   Title, 
@@ -8,22 +8,19 @@ import {
   Button, 
   Card, 
   Group, 
-  Badge,
   ThemeIcon,
   rem,
-  Progress,
   Box,
-  List,
-  Grid,
   Divider,
-  Paper
+  ScrollArea,
+  Transition
 } from '@mantine/core'
 import { 
   IconArrowLeft, 
   IconAlertCircle, 
   IconBriefcase,
-  IconCheck,
-  IconX
+  IconHistory,
+  IconChevronRight
 } from '@tabler/icons-react'
 import { StorageService } from '../../services/storageService'
 import type { AnalysisResult } from '../../services/storageService'
@@ -31,6 +28,11 @@ import { createLazyRouteComponent } from '../../utils/routeUtils'
 import { ErrorDisplay } from '../../components/ErrorDisplay'
 import { LoadingScreen } from '../../components/LoadingScreen'
 import { AsyncContentLoader } from '../../components/AsyncContentLoader'
+
+// Lazy load components for better code splitting
+const AnalysisResultCard = lazy(() => import('../../components/AnalysisResultCard').then(module => ({
+  default: module.AnalysisResultCard
+})));
 
 // Component implementation separated for better code splitting
 function AnalysisPage() {
@@ -97,82 +99,6 @@ function AnalysisPage() {
     }
   }
 
-  // Helper function to get color based on score
-  const getScoreColor = (score: number) => {
-    if (score >= 75) return 'green'
-    if (score >= 50) return 'yellow'
-    return 'red'
-  }
-
-  // Memoized analysis result card to prevent unnecessary re-renders
-  const AnalysisResultCard = memo(({ result }: { result: AnalysisResult }) => {
-    // Memoize the color calculations to avoid recalculating on every render
-    const colors = useMemo(() => {
-      return {
-        overall: getScoreColor(result.overallMatch),
-        skills: getScoreColor(result.skillsMatch),
-        experience: getScoreColor(result.experienceMatch)
-      };
-    }, [result.overallMatch, result.skillsMatch, result.experienceMatch]);
-
-    return (
-      <Card shadow="sm" p="xl" radius="lg" withBorder>
-        <Stack gap="xl">
-          <Group justify="space-between">
-            <Stack gap={0}>
-              <Text fw={500} fz="lg">Overall Match</Text>
-              <Group>
-                <Progress 
-                  value={result.overallMatch} 
-                  color={colors.overall}
-                  size="xl"
-                  radius="xl"
-                  style={{ width: rem(300) }}
-                />
-                <Badge size="xl" color={colors.overall}>{result.overallMatch}%</Badge>
-              </Group>
-            </Stack>
-          </Group>
-
-          <Grid>
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Paper p="md" withBorder shadow="xs" radius="md">
-                <Stack gap="md">
-                  <Group justify="space-between">
-                    <Text fw={500}>Skills Match</Text>
-                    <Badge size="lg" color={colors.skills}>{result.skillsMatch}%</Badge>
-                  </Group>
-                  <Progress 
-                    value={result.skillsMatch} 
-                    color={colors.skills}
-                    size="md"
-                    radius="xl"
-                  />
-                </Stack>
-              </Paper>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Paper p="md" withBorder shadow="xs" radius="md">
-                <Stack gap="md">
-                  <Group justify="space-between">
-                    <Text fw={500}>Experience Match</Text>
-                    <Badge size="lg" color={colors.experience}>{result.experienceMatch}%</Badge>
-                  </Group>
-                  <Progress 
-                    value={result.experienceMatch} 
-                    color={colors.experience}
-                    size="md"
-                    radius="xl"
-                  />
-                </Stack>
-              </Paper>
-            </Grid.Col>
-          </Grid>
-        </Stack>
-      </Card>
-    );
-  });
-  
   if (isPageLoading) {
     return <LoadingScreen variant="inline" text="Loading analysis results..." />
   }
@@ -191,33 +117,43 @@ function AnalysisPage() {
 
   if (!analysisResult) {
     return (
-      <Container size="lg" py="xl">
-        <Box
-          style={{ 
-            background: 'linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)',
-            borderRadius: rem(12),
-            padding: rem(32),
-            marginBottom: rem(24),
-            border: '1px solid #d1e6ff'
-          }}
-        >
-          <Stack gap="lg" align="center">
-            <ThemeIcon size={rem(80)} radius="xl" color="blue" variant="light">
-              <IconAlertCircle size={rem(40)} />
-            </ThemeIcon>
-            <Title order={2} ta="center">No Analysis Found</Title>
-            <Text ta="center" size="lg">No analysis result found. Please analyze a job description first.</Text>
-            <Button 
-              mt="md" 
-              size="md"
-              radius="md"
-              leftSection={<IconArrowLeft size={rem(16)} />}
-              onClick={handleBackToDashboard}
-            >
-              Back to Dashboard
-            </Button>
-          </Stack>
-        </Box>
+      <Container size="lg" py="xl" px="md">
+        <Stack gap="xl">
+          <Box
+            style={{ 
+              background: 'linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%)',
+              borderRadius: rem(12),
+              padding: rem(32),
+              marginBottom: rem(24),
+              border: '1px solid #d1e6ff'
+            }}
+          >
+            <Stack gap="lg" align="center">
+              <ThemeIcon size={rem(80)} radius="xl" color="blue" variant="light">
+                <IconAlertCircle size={rem(40)} />
+              </ThemeIcon>
+              <Title order={2} ta="center">No Analysis Found</Title>
+              <Text ta="center" size="lg">No analysis result found. Please analyze a job description first.</Text>
+              <Button 
+                mt="md" 
+                size="md"
+                radius="md"
+                leftSection={<IconArrowLeft size={rem(16)} />}
+                onClick={handleBackToDashboard}
+                style={{ minWidth: '190px' }}
+                styles={{ 
+                  root: { 
+                    '@media (max-width: 576px)': { 
+                      width: '100%' 
+                    } 
+                  } 
+                }}
+              >
+                Back to Dashboard
+              </Button>
+            </Stack>
+          </Box>
+        </Stack>
       </Container>
     )
   }
@@ -235,96 +171,130 @@ function AnalysisPage() {
             border: '1px solid #d1e6ff'
           }}
         >
-          <Grid align="center">
-            <Grid.Col span={{ base: 12, sm: 7 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ gridColumn: 'span 12' }} className="header-title-col">
               <Stack gap={5}>
-                <Text fw={500} tt="uppercase" fz="sm" c="dimmed">Analysis Results</Text>
+                <Text fw={500} tt="uppercase" fz="xs" c="dimmed">ANALYSIS RESULTS</Text>
                 <Title order={2} size="h3" fw={700}>Resume Match Analysis</Title>
-                <Text size="md" c="dimmed" maw={600}>
+                <Text size="sm" c="dimmed" maw={600}>
                   Review how well your resume matches the job description
                 </Text>
               </Stack>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, sm: 5 }} style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            </div>
+            <div style={{ 
+              gridColumn: 'span 12', 
+              display: 'flex', 
+              justifyContent: 'flex-end', 
+              gap: '10px', 
+              marginTop: '1rem'
+            }} className="header-button-col">
               <Button 
                 variant="light" 
                 leftSection={<IconArrowLeft size={rem(18)} />}
                 onClick={handleBackToDashboard}
                 radius="md"
                 size="md"
+                className="touch-ripple"
+                style={{ minWidth: '190px' }}
+                styles={{ 
+                  root: { 
+                    '@media (max-width: 576px)': { 
+                      width: '100%',
+                      margin: '0 auto'
+                    } 
+                  } 
+                }}
               >
                 Back to Dashboard
               </Button>
-            </Grid.Col>
-          </Grid>
+            </div>
+          </div>
         </Box>
 
         {/* Score Overview */}
         <AsyncContentLoader priority="high" delay={100}>
-          {analysisResult && <AnalysisResultCard result={analysisResult} />}
+          {analysisResult && (
+            <Suspense fallback={<LoadingScreen variant="inline" text="Loading analysis card..." />}>
+              <AnalysisResultCard result={analysisResult} />
+            </Suspense>
+          )}
         </AsyncContentLoader>
 
-        {/* Recommendations & Missing Skills */}
-        <AsyncContentLoader delay={300}>
-          <Grid gutter={20}>
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Paper withBorder p="md" radius="md">
-                <Title order={4} mb="md">Recommendations</Title>
-                <List spacing="xs" icon={
-                  <ThemeIcon color="blue" size={24} radius="xl">
-                    <IconCheck size={16} />
-                  </ThemeIcon>
-                }>
-                  {analysisResult?.recommendations.map((recommendation, index) => (
-                    <List.Item key={index}>
-                      <Text>{recommendation}</Text>
-                    </List.Item>
-                  ))}
-                </List>
-              </Paper>
-            </Grid.Col>
-            
-            <Grid.Col span={{ base: 12, md: 6 }}>
-              <Paper withBorder p="md" radius="md">
-                <Title order={4} mb="md">Missing Skills</Title>
-                <List spacing="xs" icon={
-                  <ThemeIcon color="red" size={24} radius="xl">
-                    <IconX size={16} />
-                  </ThemeIcon>
-                }>
-                  {analysisResult?.missingSkills.map((skill, index) => (
-                    <List.Item key={index}>
-                      <Text>{skill}</Text>
-                    </List.Item>
-                  ))}
-                </List>
-              </Paper>
-            </Grid.Col>
-          </Grid>
-        </AsyncContentLoader>
-        
         {/* Job Description */}
-        <AsyncContentLoader delay={700} loadingText="Loading job recommendations..." priority="low">
-          <Card shadow="sm" p="lg" radius="lg" withBorder>
-            <Group mb="md">
-              <ThemeIcon size={36} radius="md" color="gray" variant="light">
-                <IconBriefcase size={20} />
-              </ThemeIcon>
-              <Title order={4}>Job Description</Title>
-            </Group>
-            <Divider mb="md" />
-            <Box style={{ maxHeight: rem(300), overflow: 'auto' }}>
-              <Text style={{ whiteSpace: 'pre-wrap' }}>{analysisResult?.jobDescription || ''}</Text>
-            </Box>
-          </Card>
+        <AsyncContentLoader delay={700} loadingText="Loading job details..." priority="low">
+          <Transition
+            mounted={true}
+            transition="fade"
+            duration={400}
+          >
+            {(styles) => (
+              <Card shadow="sm" p="md" radius="lg" withBorder style={{...styles}} className="modern-card">
+                <Group mb="md">
+                  <ThemeIcon size={36} radius="md" color="gray" variant="light">
+                    <IconBriefcase size={20} />
+                  </ThemeIcon>
+                  <Title order={4}>Job Description</Title>
+                </Group>
+                <Divider mb="md" />
+                <ScrollArea h={300} scrollbarSize={6} type="hover">
+                  <Box p="xs">
+                    <Text style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '0.95rem' }}>
+                      {analysisResult?.jobDescription || ''}
+                    </Text>
+                  </Box>
+                </ScrollArea>
+              </Card>
+            )}
+          </Transition>
         </AsyncContentLoader>
 
         {/* Actions */}
-        <Group justify="flex-end">
-          <Button variant="light" onClick={handleViewHistory} radius="md">
-            View Analysis History
+        <Group justify="flex-end" mt="xl" style={{
+          '@media (max-width: 576px)': {
+            flexDirection: 'column',
+            width: '100%'
+          }
+        }}>
+          <Button 
+            variant="light" 
+            onClick={handleViewHistory} 
+            radius="md"
+            size="md"
+            leftSection={<IconHistory size={16} />}
+            className="touch-ripple"
+            style={{ 
+              transition: 'all 0.2s ease',
+            }}
+            styles={{ 
+              root: { 
+                '@media (max-width: 576px)': { 
+                  width: '100%',
+                  margin: '0 auto'
+                } 
+              } 
+            }}
+          >
+            View History
           </Button>
-          <Button onClick={handleBackToDashboard} radius="md">
+          <Button 
+            onClick={handleBackToDashboard} 
+            radius="md"
+            size="md"
+            className="touch-ripple action-button"
+            style={{ 
+              minWidth: '190px',
+              transition: 'all 0.2s ease',
+            }}
+            rightSection={<IconChevronRight size={16} />}
+            styles={{ 
+              root: { 
+                '@media (max-width: 576px)': { 
+                  width: '100%',
+                  margin: '0 auto'
+                } 
+              } 
+            }}
+          >
             Back to Dashboard
           </Button>
         </Group>

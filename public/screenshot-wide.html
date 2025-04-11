@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Resume Matcher Desktop Screenshot</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1366px;
+            height: 768px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f9ff;
+            color: #1976d2;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            width: 1200px;
+            height: 700px;
+            border: 1px solid #d1e6ff;
+            border-radius: 8px;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+        }
+
+        .panel {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px;
+        }
+
+        .left-panel {
+            width: 30%;
+        }
+
+        .right-panel {
+            width: 70%;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1976d2;
+        }
+
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: white;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #4caf50;
+            border-radius: 5px;
+            width: 75%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">Resume Matcher</div>
+            <div>Desktop View</div>
+        </div>
+        <div class="content">
+            <div class="left-panel panel">
+                <div class="title">Profile</div>
+                <div class="card">User Information</div>
+                <div class="card">Skills</div>
+            </div>
+            <div class="right-panel panel">
+                <div class="title">Resume Analysis</div>
+                <div class="card">
+                    <div>Match Score: 75%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                </div>
+                <div class="card">Job Description</div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

@@ -25,15 +25,13 @@ import {
   IconBell, 
   IconRocket, 
   IconFileDescription, 
-  IconKey,
   IconUpload,
   IconReportAnalytics,
   IconFileText,
  
   IconCalendar,
-  IconInfoCircle,
   IconChevronRight,
-  IconArrowRight,
+
   IconChartBar,
   IconCheck,
 
@@ -46,6 +44,8 @@ import { createLazyRouteComponent } from '../../utils/routeUtils'
 import { ResponsiveContainer, useResponsiveSizes } from '../../components/ResponsiveContainer'
 import { LoadingScreen } from '../../components/LoadingScreen'
 import { ResumeUploader } from '../../components/ResumeUploader'
+import { UserOnboarding, shouldShowOnboarding } from '../../components/UserOnboarding'
+import { OnboardingChecklist } from '../../components/OnboardingChecklist'
 
 // Main component implementation
 function DashboardPage() {
@@ -60,6 +60,8 @@ function DashboardPage() {
   const [isPageLoading, setIsPageLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string | null>('jobdesc')
   const isSmall = responsiveSizes.isSmall
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false)
 
   // Get user information and resume data for dashboard display
   const userInfo = StorageService.getUserInformation();
@@ -68,17 +70,25 @@ function DashboardPage() {
   const analysisHistory = StorageService.getAnalysisHistory();
   const lastAnalysis = StorageService.getLastAnalysisResult();
   
+  // Calculate profile completion status early
+  const isProfileComplete = userInfo && resumeData && userSkills.length > 0;
+  
   // Get user initials for avatar
   const userInitials = userInfo?.fullName 
     ? userInfo.fullName.split(' ').map(n => n[0]).join('').toUpperCase() 
     : 'U';
 
-  // Check notification permission status and update once on component mount
+  // Check notification permission status and check if previously dismissed
   useEffect(() => {
     // Only run in browser environment
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setNotificationPermission(Notification.permission);
-      setShowNotificationTip(Notification.permission !== 'granted');
+      
+      // Check if notifications were previously dismissed/enabled
+      const notificationsDismissed = localStorage.getItem('notifications_dismissed') === 'true';
+      
+      // Only show notification tip if not granted AND not previously dismissed
+      setShowNotificationTip(Notification.permission !== 'granted' && !notificationsDismissed);
     }
 
     // Simulate page content loading
@@ -87,6 +97,32 @@ function DashboardPage() {
     }, 500);
 
     return () => clearTimeout(timer);
+  }, []);
+
+  // Check if we should show onboarding for new users
+  useEffect(() => {
+    // Only show onboarding after the dashboard has loaded
+    if (!isPageLoading) {
+      const shouldShowOnboardingFlow = shouldShowOnboarding();
+      setShowOnboarding(shouldShowOnboardingFlow);
+      
+      // Show welcome banner for new users who have completed their profile
+      if (shouldShowOnboardingFlow && isProfileComplete) {
+        setShowWelcomeBanner(true);
+      }
+    }
+  }, [isPageLoading, isProfileComplete]);
+
+  // Add this new effect to handle tab parameter
+  useEffect(() => {
+    // Get tab from URL if present
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    
+    // Set active tab if valid
+    if (tabParam && (tabParam === 'resume' || tabParam === 'jobdesc')) {
+      setActiveTab(tabParam);
+    }
   }, []);
 
   const handleSubmit = async () => {
@@ -157,6 +193,8 @@ function DashboardPage() {
   
   const dismissNotification = () => {
     setShowNotificationTip(false);
+    // Save that user dismissed notifications
+    localStorage.setItem('notifications_dismissed', 'true');
   }
 
   // Enable notifications button click handler
@@ -175,6 +213,8 @@ function DashboardPage() {
         
         if (permission === 'granted') {
           setShowNotificationTip(false);
+          // Save that notifications were enabled
+          localStorage.setItem('notifications_dismissed', 'true');
           
           // Show a test notification
           try {
@@ -251,17 +291,25 @@ function DashboardPage() {
     return "red";
   };
 
-  const isProfileComplete = userInfo && resumeData && userSkills.length > 0;
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
 
   return (
     <ResponsiveContainer py={isSmall ? "sm" : "xl"} px={isSmall ? "xs" : "md"}>
+      <UserOnboarding 
+        isOpen={showOnboarding} 
+        onComplete={handleOnboardingComplete}
+        requestNotificationPermission={handleEnableNotifications}
+      />
+      
       {isPageLoading ? (
         <LoadingScreen variant="inline" text="Loading dashboard..." />
       ) : (
         <Stack gap={isSmall ? "sm" : responsiveSizes.padding.md}>
-          <Modal
-            opened={apiKeyModalOpen}
-            onClose={() => setApiKeyModalOpen(false)}
+      <Modal
+        opened={apiKeyModalOpen}
+        onClose={() => setApiKeyModalOpen(false)}
             title="Manage API Keys"
             size={isSmall ? "full" : "lg"}
             fullScreen={isSmall}
@@ -269,79 +317,13 @@ function DashboardPage() {
             zIndex={1000}
           >
             <ApiKeyManager onSave={() => setApiKeyModalOpen(false)} />
-          </Modal>
+      </Modal>
 
-          <Group 
-            justify="space-between" 
-            align="center" 
-            mb={responsiveSizes.padding.sm}
-            wrap={isSmall ? "wrap" : "nowrap"}
-          >
-            <Title order={isSmall ? 3 : 2} mb={isSmall ? "xs" : 0}>Resume Dashboard</Title>
-            <Group gap={isSmall ? "xs" : "md"}>
-              <Button
-                leftSection={<IconHistory size={isSmall ? 14 : 16} />}
-                variant="light"
-                size={isSmall ? 'sm' : 'md'}
-                onClick={handleViewHistory}
-                styles={{
-                  root: {
-                    height: isSmall ? 36 : undefined,
-                    minWidth: isSmall ? 80 : undefined,
-                  }
-                }}
-              >
-                History
-              </Button>
-              <Button 
-                leftSection={<IconKey size={isSmall ? 14 : 16} />}
-                variant="light" 
-                size={isSmall ? 'sm' : 'md'}
-                onClick={() => setApiKeyModalOpen(true)}
-                styles={{
-                  root: {
-                    height: isSmall ? 36 : undefined,
-                    minWidth: isSmall ? 80 : undefined,
-                  }
-                }}
-              >
-                API Key
-              </Button>
-            </Group>
-          </Group>
+          {/* Dashboard header removed */}
 
           {/* Status Banner - Only shows if profile is incomplete */}
           {!isProfileComplete && (
-            <Paper 
-              withBorder 
-              radius="md" 
-              p={isSmall ? "sm" : "md"} 
-              mb={isSmall ? "xs" : "sm"}
-              bg="blue.0"
-            >
-              <Group wrap={isSmall ? "wrap" : "nowrap"} justify="space-between">
-                <Group>
-                  <ThemeIcon radius="xl" size={isSmall ? 36 : 48} color="blue">
-                    <IconInfoCircle size={isSmall ? 18 : 24} />
-                  </ThemeIcon>
-                  <Stack gap={0}>
-                    <Text fw={600} size={isSmall ? "sm" : "md"}>Complete your profile</Text>
-                    <Text size={isSmall ? "xs" : "sm"} c="dimmed">
-                      Upload your resume, add skills, and complete your profile to get started
-                    </Text>
-                  </Stack>
-                </Group>
-                <Button 
-                  variant="light" 
-                  rightSection={<IconArrowRight size={isSmall ? 14 : 16} />}
-                  onClick={() => navigate({ to: '/profile' })}
-                  size={isSmall ? "sm" : "md"}
-                  mt={isSmall ? "xs" : 0}
-                >
-                  Complete Profile
-                </Button>
-              </Group>
-            </Paper>
+            <OnboardingChecklist />
           )}
 
           {/* Notification Permission Alert */}
@@ -382,6 +364,46 @@ function DashboardPage() {
                     Enable
                   </Button>
                 </Group>
+              </Group>
+            </Paper>
+          )}
+
+          {/* Welcome Banner - Only shows for new users who have completed their profile */}
+          {showWelcomeBanner && (
+            <Paper 
+              withBorder 
+              radius="md" 
+              p={isSmall ? "sm" : "md"} 
+              mb={isSmall ? "xs" : "sm"}
+              bg="green.0"
+            >
+              <Group justify="space-between" align="flex-start">
+                <Group align="flex-start" wrap="nowrap" gap={isSmall ? "xs" : "sm"}>
+                  <ThemeIcon 
+                    size={isSmall ? 32 : 40} 
+                    radius="xl" 
+                    color="green" 
+                    variant="light"
+                    mt={2}
+                  >
+                    <IconCheck size={isSmall ? 16 : 20} />
+                  </ThemeIcon>
+                  <div>
+                    <Text fw={600} size={isSmall ? "sm" : "md"} mb={4}>Profile Setup Complete!</Text>
+                    <Text size={isSmall ? "xs" : "sm"} c="dimmed" lineClamp={2}>
+                      You're all set! Now you can analyze how well your resume matches job descriptions.
+                    </Text>
+                  </div>
+                </Group>
+                <Button 
+                  size={isSmall ? "xs" : "sm"} 
+                  variant="light" 
+                  onClick={() => setShowWelcomeBanner(false)}
+                  px={isSmall ? 10 : undefined}
+                  color="green"
+                >
+                  Got it
+                </Button>
               </Group>
             </Paper>
           )}
@@ -616,25 +638,25 @@ function DashboardPage() {
                             Paste a job description to analyze your resume match
                           </Text>
                         </Box>
-                      </Group>
+                </Group>
                 
-                      <Textarea
-                        value={jobDescription}
-                        onChange={(e) => setJobDescription(e.target.value)}
+                <Textarea
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
                         placeholder="Paste job description here..."
                         autosize
                         minRows={isSmall ? 6 : 8}
                         maxRows={isSmall ? 10 : 12}
-                        styles={{
-                          input: {
+                  styles={{
+                    input: {
                             fontSize: isSmall ? '0.875rem' : undefined,
-                          }
-                        }}
-                      />
+                    }
+                  }}
+                />
                 
-                      <Button 
-                        onClick={handleSubmit}
-                        loading={isSubmitting}
+                <Button 
+                  onClick={handleSubmit}
+                  loading={isSubmitting}
                         disabled={!jobDescription.trim() || !isProfileComplete}
                         leftSection={<IconReportAnalytics size={isSmall ? 14 : 16} />}
                         size={isSmall ? 'sm' : 'md'}
@@ -647,7 +669,7 @@ function DashboardPage() {
                         }}
                       >
                         Analyze Match
-                      </Button>
+                </Button>
                 
                       {!isProfileComplete && (
                         <Text size="xs" c="dimmed" ta="center" mt={5}>
@@ -655,7 +677,7 @@ function DashboardPage() {
                         </Text>
                       )}
                 
-                      {isSubmitting && (
+                {isSubmitting && (
                         <Paper p={isSmall ? "xs" : "md"} withBorder>
                           <Text size={isSmall ? "xs" : "sm"} mb="xs" fw={500}>
                             Analyzing your resume...
@@ -741,7 +763,7 @@ function DashboardPage() {
                   </Stack>
                 </Paper>
               )}
-            </Grid.Col>
+          </Grid.Col>
           
             <Grid.Col span={{ base: 12, lg: 5 }}>
               {/* Resume Information Card */}
@@ -932,10 +954,10 @@ function DashboardPage() {
                         <Text size="xs" c="dimmed">
                           Identify skill gaps for your target roles
                         </Text>
-                      </Card>
-                    </Grid.Col>
-                  </Grid>
-                </Stack>
+            </Card>
+          </Grid.Col>
+        </Grid>
+      </Stack>
               </Paper>
             </Grid.Col>
           </Grid>

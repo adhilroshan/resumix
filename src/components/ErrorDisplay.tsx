@@ -174,12 +174,20 @@ export function ErrorDisplay({
             </Box>
           )}
 
-          <Group justify="center" mt="xl" gap="md">
+          <Stack gap="md" mt="xl" w="100%">
             {onBack && (
               <Button
                 leftSection={<IconArrowBack size={rem(16)} />}
-                variant="default"
+                variant="outline"
                 onClick={onBack}
+                size="md"
+                fullWidth
+                styles={{
+                  root: {
+                    borderColor: '#dee2e6',
+                    height: '50px'
+                  }
+                }}
               >
                 Go Back
               </Button>
@@ -188,8 +196,15 @@ export function ErrorDisplay({
             {onRetry && (
               <Button
                 leftSection={<IconRefresh size={rem(16)} />}
-                color={iconColor}
+                color="blue"
                 onClick={onRetry}
+                size="md"
+                fullWidth
+                styles={{
+                  root: {
+                    height: '50px'
+                  }
+                }}
               >
                 Try Again
               </Button>
@@ -198,8 +213,16 @@ export function ErrorDisplay({
             {onNavigateHome && (
               <Button
                 leftSection={<IconHomeExclamation size={rem(16)} />}
-                variant="subtle"
+                variant="filled"
+                color="blue"
                 onClick={onNavigateHome}
+                size="md"
+                fullWidth
+                styles={{
+                  root: {
+                    height: '50px'
+                  }
+                }}
               >
                 Go to Dashboard
               </Button>
@@ -211,6 +234,8 @@ export function ErrorDisplay({
                 variant="subtle"
                 color="gray"
                 onClick={onReset}
+                size="md"
+                fullWidth
               >
                 Reset
               </Button>
@@ -222,13 +247,15 @@ export function ErrorDisplay({
                 variant="subtle"
                 color="red"
                 onClick={onClearData}
+                size="md"
+                fullWidth
               >
                 Clear Data
               </Button>
             )}
 
             {additionalActions}
-          </Group>
+          </Stack>
         </Stack>
       </Paper>
     </Container>

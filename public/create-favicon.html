@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Favicon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+        }
+
+        .sizes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .size-container {
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Favicon Generator</h1>
+    <p>This page will generate a favicon with the correct sizes (64x64, 32x32, 24x24, 16x16).</p>
+
+    <div class="sizes">
+        <div class="size-container">
+            <h3>64x64</h3>
+            <canvas id="canvas64" width="64" height="64"></canvas>
+        </div>
+        <div class="size-container">
+            <h3>32x32</h3>
+            <canvas id="canvas32" width="32" height="32"></canvas>
+        </div>
+        <div class="size-container">
+            <h3>24x24</h3>
+            <canvas id="canvas24" width="24" height="24"></canvas>
+        </div>
+        <div class="size-container">
+            <h3>16x16</h3>
+            <canvas id="canvas16" width="16" height="16"></canvas>
+        </div>
+    </div>
+
+    <button id="download">Download Favicon</button>
+
+    <script>
+        // Function to draw our icon at different sizes
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+
+            // Background
+            ctx.fillStyle = '#1976d2';
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Letter 'R'
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.floor(size * 0.6)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('R', size / 2, size / 2 + 2);
+        }
+
+        // Draw icons at each size
+        window.onload = function () {
+            drawIcon(document.getElementById('canvas64'), 64);
+            drawIcon(document.getElementById('canvas32'), 32);
+            drawIcon(document.getElementById('canvas24'), 24);
+            drawIcon(document.getElementById('canvas16'), 16);
+
+            // The download feature is just for illustration
+            // In a real implementation, we'd use a library to combine these
+            // into a multi-size .ico file
+            document.getElementById('download').addEventListener('click', function () {
+                alert('In a real implementation, this would download a .ico file with all sizes combined');
+            });
+        };
+    </script>
+</body>
+
+</html>

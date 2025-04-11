@@ -11,9 +11,9 @@ import {
   Box,
   Center,
   RingProgress,
-  Grid,
-  List,
-  ThemeIcon
+  ThemeIcon,
+  Badge,
+  Title
 } from '@mantine/core';
 import { Dropzone } from '@mantine/dropzone';
 import type { FileWithPath } from 'react-dropzone';
@@ -29,7 +29,10 @@ import {
   IconCheck,
   IconUser,
   IconMail,
-  IconPhone
+  IconPhone,
+  IconFileDescription,
+  IconDeviceDesktopAnalytics,
+  IconStar
 } from '@tabler/icons-react';
 import { useResponsiveSizes } from '../components/ResponsiveContainer';
 import { StorageService } from '../services/storageService';
@@ -241,14 +244,18 @@ export function ResumeUploader({
       // Extract text from PDF using our utility function
       const text = await extractTextFromPDF(file, (progressValue) => {
         setProgress(progressValue);
-        if (progressValue < 30) {
+        if (progressValue < 20) {
           setProcessingStage('Initializing PDF processor...');
+        } else if (progressValue < 40) {
+          setProcessingStage('Reading document structure...');
         } else if (progressValue < 60) {
           setProcessingStage('Extracting text from pages...');
-        } else if (progressValue < 90) {
-          setProcessingStage('Finalizing extraction...');
+        } else if (progressValue < 80) {
+          setProcessingStage('Processing content...');
+        } else if (progressValue < 95) {
+          setProcessingStage('Analyzing document text...');
         } else {
-          setProcessingStage('Analyzing content...');
+          setProcessingStage('Finalizing analysis...');
         }
       });
       
@@ -325,7 +332,7 @@ export function ResumeUploader({
   };
   
   return (
-    <Paper p={isSmall ? "sm" : "md"} withBorder radius="md">
+    <Paper p={isSmall ? "sm" : "md"} withBorder radius="md" className="modern-card resume-upload-paper">
       <Stack gap={isSmall ? "xs" : "md"}>
         <Group justify="apart" wrap={isSmall ? "wrap" : "nowrap"}>
           <Text fw={500} size={isSmall ? "sm" : undefined}>Upload Your Resume</Text>
@@ -344,6 +351,9 @@ export function ResumeUploader({
                 root: { width: '100%' },
                 label: { padding: '5px 8px', fontSize: '12px' }
               } : undefined}
+              classNames={{
+                root: 'touch-ripple'
+              }}
             />
           </Box>
         </Group>
@@ -363,6 +373,9 @@ export function ResumeUploader({
             color="red" 
             title="Upload Error" 
             p={isSmall ? "xs" : "md"}
+            style={{
+              animation: 'fadeIn 0.3s ease-out'
+            }}
           >
             <Text size={isSmall ? "xs" : "sm"}>{error}</Text>
           </Alert>
@@ -378,13 +391,14 @@ export function ResumeUploader({
               openRef={openRef}
               h={isSmall ? 150 : 180}
               p={isSmall ? "xs" : "md"}
+              className="upload-box touch-ripple"
               styles={isSmall ? {
                 root: { borderWidth: '1px' }
               } : undefined}
             >
               <Group justify="center" gap={isSmall ? "sm" : "xl"} style={{ minHeight: rem(isSmall ? 100 : 120), pointerEvents: 'none' }}>
                 <Dropzone.Accept>
-                  <IconUpload size={isSmall ? 22 : 28} stroke={1.5} />
+                  <IconUpload size={isSmall ? 22 : 28} stroke={1.5} className="cloud-icon" />
                 </Dropzone.Accept>
                 <Dropzone.Reject>
                   <IconX size={isSmall ? 22 : 28} stroke={1.5} />
@@ -399,7 +413,7 @@ export function ResumeUploader({
                     </Stack>
                   ) : (
                     <Stack gap={isSmall ? "8px" : "xs"} align="center">
-                      <IconUpload size={isSmall ? 22 : 28} stroke={1.5} />
+                      <IconUpload size={isSmall ? 22 : 28} stroke={1.5} className="cloud-icon" />
                       <div>
                         <Text size={isSmall ? "sm" : "md"} fw={500} inline ta="center">
                           Drag resume here
@@ -423,6 +437,7 @@ export function ResumeUploader({
                 fullWidth={isSmall}
                 h={isSmall ? 40 : undefined}
                 mt={isSmall ? 5 : undefined}
+                className="upload-button touch-ripple"
               >
                 Select File
               </Button>
@@ -436,6 +451,10 @@ export function ResumeUploader({
                   leftSection={<IconFileTypePdf size={isSmall ? 12 : 14} stroke={1.5} />}
                   size={isSmall ? "sm" : "md"}
                   fullWidth={isSmall}
+                  className="action-button touch-ripple"
+                  style={{
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.12)'
+                  }}
                 >
                   Process PDF
                 </Button>
@@ -443,129 +462,187 @@ export function ResumeUploader({
             )}
           </>
         ) : isProcessing ? (
-          <Box my={isSmall ? "xs" : "md"}>
-            <Text ta="center" fw={500} size={isSmall ? "sm" : "md"} mb={isSmall ? "xs" : "md"}>
-              {processingStage}
-            </Text>
-            
-            <Center mb={isSmall ? "xs" : "md"}>
+          <Box py="lg" className="processing-container" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+            <Stack gap="md" align="center">
+              <Text fw={500} ta="center" size={isSmall ? "sm" : "md"}>
+                {processingStage}
+              </Text>
+              
               <RingProgress
-                size={isSmall ? 100 : 120}
-                thickness={isSmall ? 8 : 12}
-                roundCaps
                 sections={[{ value: progress, color: 'blue' }]}
+                size={isSmall ? 120 : 150}
+                thickness={12}
+                roundCaps
+                className="ring-progress"
                 label={
                   <Center>
-                    <Text fw={700} size={isSmall ? "md" : "xl"}>{progress}%</Text>
+                    <Text fw={700} ta="center" size={isSmall ? "lg" : "xl"} className="ring-progress-label">
+                      {Math.round(progress)}%
+                    </Text>
                   </Center>
                 }
               />
-            </Center>
-            
-            <Text ta="center" size={isSmall ? "xs" : "sm"} c="dimmed">
-              Extracting text, analyzing skills, and preparing your profile...
-            </Text>
+              
+              {/* Detailed processing stages */}
+              <Paper withBorder p="md" radius="md" shadow="sm" w="100%" className="modern-card">
+                <Stack gap="xs">
+                  <ProcessingStageItem 
+                    icon={<IconFileTypePdf size={18} />}
+                    label="Document loading"
+                    isActive={progress < 20}
+                    isCompleted={progress >= 20}
+                  />
+                  <ProcessingStageItem 
+                    icon={<IconFileDescription size={18} />}
+                    label="Reading structure"
+                    isActive={progress >= 20 && progress < 40}
+                    isCompleted={progress >= 40}
+                  />
+                  <ProcessingStageItem 
+                    icon={<IconFileText size={18} />}
+                    label="Text extraction"
+                    isActive={progress >= 40 && progress < 60}
+                    isCompleted={progress >= 60}
+                  />
+                  <ProcessingStageItem 
+                    icon={<IconDeviceDesktopAnalytics size={18} />}
+                    label="Content analysis"
+                    isActive={progress >= 60 && progress < 80}
+                    isCompleted={progress >= 80}
+                  />
+                  <ProcessingStageItem 
+                    icon={<IconStar size={18} />}
+                    label="Skills detection"
+                    isActive={progress >= 80 && progress < 95}
+                    isCompleted={progress >= 95}
+                  />
+                </Stack>
+              </Paper>
+              
+              <Text size="xs" color="dimmed" maw={400} ta="center">
+                Processing time depends on the size and complexity of your PDF. Please don't close this window.
+              </Text>
+            </Stack>
           </Box>
         ) : success && showVerification ? (
-          <Box>
-            <Alert 
-              color="green" 
-              title="Resume Successfully Processed" 
-              icon={<IconCheck size={isSmall ? 14 : 16} stroke={1.5} />} 
-              mb={isSmall ? "xs" : "md"}
-            >
-              <Text size={isSmall ? "xs" : "sm"}>
-                Your resume has been processed and your profile has been updated.
+          <Box py="md" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+            <Stack gap="md" align="center">
+              <ThemeIcon size={60} radius="xl" color="green" style={{ animation: 'pulse 2s ease-in-out' }}>
+                <IconCheck size={30} />
+              </ThemeIcon>
+              
+              <Title order={3} ta="center" style={{ animation: 'slideDown 0.5s ease-out 0.2s both' }}>Resume Processed!</Title>
+              
+              <Text ta="center" maw={400} style={{ animation: 'fadeIn 0.5s ease-out 0.3s both' }}>
+                We've successfully extracted and analyzed your resume.
               </Text>
-            </Alert>
-            
-            {extractedData && (
-              <Grid>
-                {extractedData.contactInfo && (extractedData.contactInfo.name || extractedData.contactInfo.email || extractedData.contactInfo.phone) && (
-                  <Grid.Col span={12}>
-                    <Box mb={isSmall ? "xs" : "sm"}>
-                      <Text fw={500} size={isSmall ? "sm" : "md"} mb={isSmall ? "xs" : "sm"}>
-                        Extracted Contact Information
-                      </Text>
-                      <List size={isSmall ? "xs" : "sm"}>
-                        {extractedData.contactInfo.name && (
-                          <List.Item
-                            icon={
-                              <ThemeIcon color="blue" variant="light" size={isSmall ? 16 : 18}>
-                                <IconUser size={isSmall ? 10 : 12} stroke={1.5} />
-                              </ThemeIcon>
-                            }
-                          >
-                            {extractedData.contactInfo.name}
-                          </List.Item>
-                        )}
-                        {extractedData.contactInfo.email && (
-                          <List.Item
-                            icon={
-                              <ThemeIcon color="blue" variant="light" size={isSmall ? 16 : 18}>
-                                <IconMail size={isSmall ? 10 : 12} stroke={1.5} />
-                              </ThemeIcon>
-                            }
-                          >
-                            {extractedData.contactInfo.email}
-                          </List.Item>
-                        )}
-                        {extractedData.contactInfo.phone && (
-                          <List.Item
-                            icon={
-                              <ThemeIcon color="blue" variant="light" size={isSmall ? 16 : 18}>
-                                <IconPhone size={isSmall ? 10 : 12} stroke={1.5} />
-                              </ThemeIcon>
-                            }
-                          >
-                            {extractedData.contactInfo.phone}
-                          </List.Item>
-                        )}
-                      </List>
-                    </Box>
-                  </Grid.Col>
-                )}
-                
-                {extractedData.skills && extractedData.skills.length > 0 && (
-                  <Grid.Col span={12}>
-                    <Box>
-                      <Text fw={500} size={isSmall ? "sm" : "md"} mb={isSmall ? "xs" : "sm"}>
-                        Detected Skills ({extractedData.skills.length})
-                      </Text>
-                      <Group gap="xs" style={{ flexWrap: 'wrap' }}>
-                        {extractedData.skills.slice(0, 10).map((skill, index) => (
-                          <Alert key={index} color="blue" p={isSmall ? "xs" : "sm"} radius="sm" variant="light" style={{ margin: '4px' }}>
-                            {skill}
-                          </Alert>
-                        ))}
-                        {extractedData.skills.length > 10 && (
-                          <Text size="xs" c="dimmed">
-                            ...and {extractedData.skills.length - 10} more
-                          </Text>
-                        )}
+              
+              {extractedData && (
+                <Paper withBorder p="md" radius="md" shadow="sm" w="100%" className="modern-card" style={{ animation: 'slideUp 0.5s ease-out 0.4s both' }}>
+                  <Stack gap="md">
+                    {extractedData.contactInfo.name && (
+                      <Group>
+                        <ThemeIcon size={36} radius="md" color="blue" variant="light">
+                          <IconUser size={20} />
+                        </ThemeIcon>
+                        <div>
+                          <Text size="xs" color="dimmed">Name</Text>
+                          <Text>{extractedData.contactInfo.name}</Text>
+                        </div>
                       </Group>
-                    </Box>
-                  </Grid.Col>
-                )}
-              </Grid>
-            )}
-            
-            <Group justify="center" mt={isSmall ? "sm" : "md"}>
-              <Button
-                onClick={() => {
-                  setFile(null);
-                  setSuccess(false);
-                  setExtractedData(null);
-                }}
-                size={isSmall ? "sm" : "md"}
-                variant="light"
-              >
-                Upload Another Resume
-              </Button>
-            </Group>
+                    )}
+                    
+                    {extractedData.contactInfo.email && (
+                      <Group>
+                        <ThemeIcon size={36} radius="md" color="blue" variant="light">
+                          <IconMail size={20} />
+                        </ThemeIcon>
+                        <div>
+                          <Text size="xs" color="dimmed">Email</Text>
+                          <Text>{extractedData.contactInfo.email}</Text>
+                        </div>
+                      </Group>
+                    )}
+                    
+                    {extractedData.contactInfo.phone && (
+                      <Group>
+                        <ThemeIcon size={36} radius="md" color="blue" variant="light">
+                          <IconPhone size={20} />
+                        </ThemeIcon>
+                        <div>
+                          <Text size="xs" color="dimmed">Phone</Text>
+                          <Text>{extractedData.contactInfo.phone}</Text>
+                        </div>
+                      </Group>
+                    )}
+                    
+                    {extractedData.skills.length > 0 && (
+                      <div>
+                        <Text size="xs" color="dimmed" mb="xs">Detected Skills</Text>
+                        <Group gap="xs" style={{ rowGap: '8px' }}>
+                          {extractedData.skills.slice(0, 10).map((skill, index) => (
+                            <Badge 
+                              key={index} 
+                              color="blue" 
+                              variant="light"
+                              style={{ 
+                                animation: `fadeIn 0.3s ease-out ${0.1 * (index % 5)}s both`,
+                                opacity: 0
+                              }}
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                          {extractedData.skills.length > 10 && (
+                            <Badge color="gray">+{extractedData.skills.length - 10} more</Badge>
+                          )}
+                        </Group>
+                      </div>
+                    )}
+                  </Stack>
+                </Paper>
+              )}
+            </Stack>
           </Box>
         ) : null}
       </Stack>
     </Paper>
+  );
+}
+
+// Helper component for processing stage visualization
+function ProcessingStageItem({ icon, label, isActive, isCompleted }: { 
+  icon: React.ReactNode; 
+  label: string; 
+  isActive: boolean; 
+  isCompleted: boolean; 
+}) {
+  return (
+    <Group justify="space-between">
+      <Group>
+        <ThemeIcon 
+          size={28} 
+          radius="xl" 
+          color={isCompleted ? 'green' : isActive ? 'blue' : 'gray'} 
+          variant={isCompleted ? 'filled' : 'light'}
+          style={{
+            transition: 'all 0.2s ease',
+            ...(isActive && {
+              animation: 'pulse 2s infinite'
+            })
+          }}
+        >
+          {isCompleted ? <IconCheck size={16} /> : icon}
+        </ThemeIcon>
+        <Text 
+          size="sm" 
+          fw={isActive || isCompleted ? 500 : 400}
+          color={isCompleted ? 'green' : isActive ? 'blue' : 'dimmed'}
+        >
+          {label}
+        </Text>
+      </Group>
+      {isCompleted && <IconCheck size={16} color="green" style={{ animation: 'fadeIn 0.3s ease-out' }} />}
+    </Group>
   );
 } 

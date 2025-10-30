@@ -215,12 +215,7 @@ export function MobileResumeLogin() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <NoResumeEmptyState
-                onUpload={() => {
-                  // Default to file upload
-                  setUploadMethod('file');
-                }}
-              />
+              <NoResumeEmptyState />
 
               {/* Enhanced Upload Options */}
               <motion.div

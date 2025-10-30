@@ -3,7 +3,8 @@
     "allow": [
       "Bash(bun run build:*)",
       "Bash(bun dev:*)",
-      "mcp__next-devtools__browser_eval"
+      "mcp__next-devtools__browser_eval",
+      "WebFetch(domain:roadmap.sh)"
     ],
     "deny": [],
     "ask": []

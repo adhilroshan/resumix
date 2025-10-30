@@ -40,6 +40,7 @@ interface AppStore extends AppState {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
+  setUploadProgress: (progress: number) => void;
 
   // Mobile navigation
   activeMobileTab: string;
@@ -73,6 +74,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   analysisHistory: [],
   isLoading: false,
   error: null,
+  uploadProgress: undefined,
   activeMobileTab: 'home',
 
   // Onboarding state
@@ -82,35 +84,66 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // Resume authentication actions
   uploadAndAuthenticateResume: async (file: File) => {
-    set({ isLoading: true, loginError: null });
+    set({ isLoading: true, loginError: null, uploadProgress: 0 });
+    let progressInterval: NodeJS.Timeout | undefined;
+
     try {
+      // Simulate upload progress
+      progressInterval = setInterval(() => {
+        const currentProgress = get().uploadProgress || 0;
+        if (currentProgress < 70) {
+          set({ uploadProgress: currentProgress + 10 });
+        }
+      }, 200);
+
       const resume = await processFile(file);
+
+      // Complete the progress bar
+      set({ uploadProgress: 90 });
+
       const validation = await get().validateResume(resume);
 
+      // Clear the progress interval and complete
+      clearInterval(progressInterval);
+      set({ uploadProgress: 100 });
+
       if (!validation.isValid) {
-        set({
-          resume,
-          resumeValidation: validation,
-          loginError: 'Resume is incomplete. Please provide the missing information.',
-          isLoading: false,
-        });
+        setTimeout(() => {
+          set({
+            resume,
+            resumeValidation: validation,
+            loginError: 'Resume is incomplete. Please provide the missing information.',
+            isLoading: false,
+            uploadProgress: undefined,
+          });
+        }, 500); // Brief delay to show 100% completion
         return false;
       }
 
       // Successful authentication
-      set({
-        resume,
-        resumeValidation: validation,
-        isLoggedIn: true,
-        loginError: null,
-        isLoading: false,
-      });
+      setTimeout(() => {
+        set({
+          resume,
+          resumeValidation: validation,
+          isLoggedIn: true,
+          loginError: null,
+          isLoading: false,
+          uploadProgress: undefined,
+        });
+      }, 500); // Brief delay to show 100% completion
 
       LocalStorage.saveResume(resume);
       return true;
     } catch (error) {
+      if (progressInterval) {
+        clearInterval(progressInterval); // Clear interval on error
+      }
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload resume';
-      set({ loginError: errorMessage, isLoading: false });
+      set({
+        loginError: errorMessage,
+        isLoading: false,
+        uploadProgress: undefined,
+      });
       return false;
     }
   },
@@ -184,6 +217,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       resumeValidation: null,
       loginError: null,
       currentAnalysis: null,
+      uploadProgress: undefined,
     });
   },
 
@@ -348,7 +382,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const resume = LocalStorage.getResumes()[0] || null; // Get first resume
     const searchHistory: JobDescription[] = LocalStorage.getItem('resumix_search_history') || [];
     const analysisHistory: AnalysisResult[] = LocalStorage.getItem('resumix_analysis_history') || [];
-    const hasCompletedOnboarding = LocalStorage.getItem('resumix_onboarding_complete') || false;
+    const hasCompletedOnboarding = Boolean(LocalStorage.getItem('resumix_onboarding_complete'));
 
     set({
       resume,
@@ -375,6 +409,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       searchHistory: [],
       currentAnalysis: null,
       analysisHistory: [],
+      uploadProgress: undefined,
     });
     LocalStorage.clearAll();
   },
@@ -415,6 +450,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   setLoading: (loading: boolean) => set({ isLoading: loading }),
   setError: (error: string | null) => set({ error }),
   clearError: () => set({ error: null }),
+  setUploadProgress: (progress: number) => set({ uploadProgress: progress }),
 
   // Mobile navigation
   setActiveMobileTab: (tab: string) => set({ activeMobileTab: tab }),

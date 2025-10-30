@@ -64,7 +64,7 @@ export function MobileOnboardingFlow() {
           type: 'email',
           placeholder: 'your.email@example.com',
           required: true,
-          value: resume.parsedData?.contactInfo?.email || ''
+          value: resume?.parsedData?.contactInfo?.email || ''
         },
         {
           id: 'phone',
@@ -72,7 +72,7 @@ export function MobileOnboardingFlow() {
           type: 'tel',
           placeholder: '+1 (555) 123-4567',
           required: false,
-          value: resume.parsedData?.contactInfo?.phone || ''
+          value: resume?.parsedData?.contactInfo?.phone || ''
         }
       ]
     });
@@ -92,7 +92,7 @@ export function MobileOnboardingFlow() {
           type: 'tags',
           placeholder: 'JavaScript, React, Node.js, Python...',
           required: true,
-          value: resume.parsedData?.skills || []
+          value: resume?.parsedData?.skills || []
         }
       ]
     });
@@ -187,7 +187,7 @@ export function MobileOnboardingFlow() {
     const newErrors: Record<string, string> = {};
 
     currentStepData.fields.forEach(field => {
-      if (field.required && !formData[fieldId]) {
+      if (field.required && !formData[field.id]) {
         newErrors[field.id] = `${field.label} is required`;
       }
 
@@ -228,9 +228,9 @@ export function MobileOnboardingFlow() {
 
       if (formData.email || formData.phone) {
         updates.parsedData = {
-          ...resume.parsedData,
+          ...resume?.parsedData,
           contactInfo: {
-            ...resume.parsedData?.contactInfo,
+            ...resume?.parsedData?.contactInfo,
             email: formData.email,
             phone: formData.phone
           }
@@ -243,17 +243,17 @@ export function MobileOnboardingFlow() {
           : formData.skills;
 
         updates.parsedData = {
-          ...updates.parsedData || resume.parsedData,
+          ...updates.parsedData || resume?.parsedData,
           skills
         };
       }
 
       if (formData.currentJobTitle || formData.currentCompany) {
-        const experience = resume.parsedData?.experience || [];
+        const experience = resume?.parsedData?.experience || [];
 
         if (experience.length === 0) {
           updates.parsedData = {
-            ...updates.parsedData || resume.parsedData,
+            ...updates.parsedData || resume?.parsedData,
             experience: [{
               title: formData.currentJobTitle,
               company: formData.currentCompany,
@@ -266,11 +266,11 @@ export function MobileOnboardingFlow() {
       }
 
       if (formData.degree || formData.institution) {
-        const education = resume.parsedData?.education || [];
+        const education = resume?.parsedData?.education || [];
 
         if (education.length === 0) {
           updates.parsedData = {
-            ...updates.parsedData || resume.parsedData,
+            ...updates.parsedData || resume?.parsedData,
             education: [{
               degree: formData.degree,
               institution: formData.institution,
@@ -377,8 +377,8 @@ export function MobileOnboardingFlow() {
                 {field.required && <span className="text-red-500 ml-1">*</span>}
               </label>
               {renderField(field)}
-              {error && (
-                <p className="text-sm text-red-600 mt-1">{error}</p>
+              {errors[field.id] && (
+                <p className="text-sm text-red-600 mt-1">{errors[field.id]}</p>
               )}
             </div>
           ))}

@@ -146,4 +146,5 @@ export interface AppState {
   // UI state
   isLoading: boolean;
   error: string | null;
+  uploadProgress: number | undefined;
 }

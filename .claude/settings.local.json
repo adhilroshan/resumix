@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run build:*)",
+      "Bash(bun dev:*)",
+      "mcp__next-devtools__browser_eval"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

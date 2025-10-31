@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
+   experimental: {
+    optimizePackageImports: ['lightningcss'],
+    serverComponentsExternalPackages: ['lightningcss']
+  },
   reactStrictMode: true,
   turbopack: {}, // Empty turbopack config to avoid webpack/turbopack conflict
 };
